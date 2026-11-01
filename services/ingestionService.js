@@ -1,5 +1,6 @@
 const { getDB, logMongoOperation, getDBEvents } = require('./db');
 const { createEvidence } = require('./evidenceService');
+const { scoreEvidenceBatch } = require('./mlService');
 
 /**
  * Parses raw text or buffer input into JavaScript objects
@@ -13,7 +14,7 @@ function parseRawData(content, format = 'json') {
   format = format.toLowerCase();
   const trimmed = content.trim();
 
-  if (format === 'json' || trimmed.startsWith('[') || trimmed.startsWith('{')) {
+  if (format === 'json' || format === 'application/json' || (trimmed.startsWith('[') || trimmed.startsWith('{'))) {
     try {
       const parsed = JSON.parse(trimmed);
       return Array.isArray(parsed) ? parsed : [parsed];
@@ -21,9 +22,9 @@ function parseRawData(content, format = 'json') {
       // Fallback to JSONL if JSON parse fails
       return parseJsonLines(trimmed);
     }
-  } else if (format === 'jsonl') {
+  } else if (format === 'jsonl' || format.includes('jsonl') || format.includes('ndjson')) {
     return parseJsonLines(trimmed);
-  } else if (format === 'csv') {
+  } else if (format === 'csv' || format.includes('csv')) {
     return parseCSV(trimmed);
   }
 
@@ -41,23 +42,99 @@ function parseJsonLines(text) {
   });
 }
 
-function parseCSV(text) {
-  const lines = text.split(/\r?\n/).filter(Boolean);
-  if (lines.length < 2) return [];
-
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
-  const rows = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const rawCols = lines[i].split(',');
-    const obj = {};
-    headers.forEach((h, colIdx) => {
-      let val = rawCols[colIdx] ? rawCols[colIdx].trim().replace(/^["']|["']$/g, '') : '';
-      obj[h] = val;
-    });
-    rows.push(obj);
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        cur += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        result.push(cur.trim());
+        cur = '';
+      } else {
+        cur += ch;
+      }
+    }
   }
-  return rows;
+  result.push(cur.trim());
+  return result;
+}
+
+function parseCSV(text) {
+  if (!text || typeof text !== 'string') return [];
+
+  // Parse the complete stream instead of splitting on newlines. CSV permits
+  // commas, escaped quotes, and line breaks inside a quoted field.
+  const rows = [];
+  let row = [];
+  let value = '';
+  let inQuotes = false;
+  let atFieldStart = true;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          value += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        value += ch;
+      }
+      continue;
+    }
+
+    if (ch === '"' && atFieldStart) {
+      inQuotes = true;
+      atFieldStart = false;
+    } else if (ch === ',') {
+      row.push(value.trim());
+      value = '';
+      atFieldStart = true;
+    } else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(value.trim());
+      if (row.some(cell => cell.length > 0)) rows.push(row);
+      row = [];
+      value = '';
+      atFieldStart = true;
+    } else {
+      value += ch;
+      atFieldStart = false;
+    }
+  }
+
+  if (inQuotes) throw new Error('CSV parsing error: unterminated quoted field');
+  row.push(value.trim());
+  if (row.some(cell => cell.length > 0)) rows.push(row);
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map(h => h.replace(/^\uFEFF/, ''));
+  if (headers.some(h => !h)) throw new Error('CSV parsing error: header names must not be empty');
+
+  return rows.slice(1).map((columns, rowIndex) => {
+    if (columns.length > headers.length) {
+      throw new Error(`CSV parsing error: row ${rowIndex + 2} has more values than headers`);
+    }
+    return Object.fromEntries(headers.map((header, index) => [header, columns[index] || '']));
+  });
 }
 
 /**
@@ -115,15 +192,24 @@ async function validateIngestionBatch(investigationId, rawRecords, fieldMapping 
     const raw = rawRecords[i];
     const errors = [];
 
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      invalidRecords.push({ index: i, record: raw, errors: ['Each record must be a JSON object or CSV row'] });
+      continue;
+    }
+
     // Map fields
     const title = raw[fieldMapping.title || 'title'] || raw.title || raw.name || raw.event_name;
     const timestampRaw = raw[fieldMapping.timestamp || 'timestamp'] || raw.timestamp || raw['@timestamp'] || raw.time;
-    const severity = (raw[fieldMapping.severity || 'severity'] || raw.severity || 'MEDIUM').toUpperCase();
+    const suppliedSeverity = raw[fieldMapping.severity || 'severity'] || raw.severity;
+    const severity = String(suppliedSeverity || 'MEDIUM').toUpperCase();
     const artifactType = (raw[fieldMapping.artifactType || 'artifactType'] || raw.artifactType || 'SECURITY_EVENT').toUpperCase();
     const sourceHost = raw[fieldMapping.sourceHost || 'sourceHost'] || raw.sourceHost || raw.host || 'unknown-host';
     const description = raw[fieldMapping.description || 'description'] || raw.description || '';
 
     if (!title) errors.push('Missing required title/event name');
+    if (suppliedSeverity && !['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(severity)) {
+      errors.push(`Invalid severity value: ${suppliedSeverity}`);
+    }
 
     let parsedDate = new Date();
     if (timestampRaw) {
@@ -175,7 +261,7 @@ async function validateIngestionBatch(investigationId, rawRecords, fieldMapping 
 /**
  * Execute actual batch ingestion and persist to MongoDB
  */
-async function executeIngestion(investigationId, canonicalRecords, sourceSystem = 'MANUAL_IMPORT', actor = 'SecOps-Ingest') {
+async function executeIngestion(investigationId, canonicalRecords, sourceSystem = 'MANUAL_IMPORT', actor = 'SecOps-Ingest', options = {}) {
   const db = getDB();
   const t0 = performance.now();
   const jobId = `JOB-2026-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -187,10 +273,10 @@ async function executeIngestion(investigationId, canonicalRecords, sourceSystem 
     investigationId,
     sourceSystem,
     status: 'PROCESSING',
-    totalRecords: canonicalRecords.length,
+    totalRecords: options.totalRecords ?? canonicalRecords.length,
     acceptedCount: 0,
-    rejectedCount: 0,
-    duplicateCount: 0,
+    rejectedCount: options.preRejectedCount || 0,
+    duplicateCount: options.duplicateCount || 0,
     createdAt: now,
     createdBy: actor
   };
@@ -198,20 +284,44 @@ async function executeIngestion(investigationId, canonicalRecords, sourceSystem 
 
   const ingestedEvidence = [];
   let accepted = 0;
-  let rejected = 0;
+  let persistenceRejected = 0;
 
-  for (const rec of canonicalRecords) {
-    try {
-      const created = await createEvidence({
-        ...rec,
-        investigationId,
-        caseId: investigationId,
-        provenance: { source: sourceSystem, jobId, ingestedBy: actor }
-      }, actor);
-      ingestedEvidence.push(created);
-      accepted++;
-    } catch {
-      rejected++;
+      // 1. Batch ML Anomaly Scoring
+  let mlPredictions = [];
+  try {
+    mlPredictions = await scoreEvidenceBatch(canonicalRecords);
+  } catch (mlErr) {
+    console.warn('[Ingestion ML] Batch scoring warning:', mlErr.message);
+  }
+
+  const CHUNK_SIZE = 25;
+  const errors = [];
+  for (let i = 0; i < canonicalRecords.length; i += CHUNK_SIZE) {
+    const chunk = canonicalRecords.slice(i, i + CHUNK_SIZE);
+    const chunkResults = await Promise.allSettled(
+      chunk.map((rec, chunkIdx) => {
+        const globalIdx = i + chunkIdx;
+        const mlPred = mlPredictions[globalIdx] || null;
+        return createEvidence({
+          ...rec,
+          investigationId,
+          caseId: investigationId,
+          provenance: { source: sourceSystem, jobId, ingestedBy: actor },
+          mlAnomalyScore: mlPred ? mlPred.anomaly_score : null,
+          mlIsAnomaly: mlPred ? mlPred.is_anomaly : false,
+          mlThreatLevel: mlPred ? mlPred.threat_level : 'LOW',
+          mlExplanation: mlPred ? mlPred.explanation : null
+        }, actor);
+      })
+    );
+    for (const r of chunkResults) {
+      if (r.status === 'fulfilled' && r.value) {
+        ingestedEvidence.push(r.value);
+        accepted++;
+      } else {
+        persistenceRejected++;
+        if (r.reason) errors.push(r.reason.message || String(r.reason));
+      }
     }
   }
 
@@ -223,23 +333,24 @@ async function executeIngestion(investigationId, canonicalRecords, sourceSystem 
     { jobId },
     {
       $set: {
-        status: rejected === 0 ? 'COMPLETED' : 'COMPLETED_WITH_WARNINGS',
+        status: persistenceRejected === 0 && !(options.preRejectedCount || 0) ? 'COMPLETED' : 'COMPLETED_WITH_WARNINGS',
         acceptedCount: accepted,
-        rejectedCount: rejected,
+        rejectedCount: persistenceRejected + (options.preRejectedCount || 0),
         durationMs,
         completedAt: new Date()
       }
     }
   );
 
+  const rejected = persistenceRejected + (options.preRejectedCount || 0);
   logMongoOperation('insertMany (batched)', 'evidence', { jobId, accepted, rejected }, durationMs, accepted);
 
   getDBEvents().emit('INGESTION_JOB_COMPLETED', { jobId, investigationId, accepted, rejected });
 
   return {
     jobId,
-    status: 'COMPLETED',
-    totalRecords: canonicalRecords.length,
+    status: rejected === 0 ? 'COMPLETED' : 'COMPLETED_WITH_WARNINGS',
+    totalRecords: options.totalRecords ?? canonicalRecords.length,
     acceptedCount: accepted,
     rejectedCount: rejected,
     durationMs,

@@ -9,7 +9,7 @@ function generateBenchmarkData(caseId, count = 1000) {
   const severities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
   const tactics = ['Initial Access', 'Execution', 'Persistence', 'Privilege Escalation', 'Credential Access', 'Exfiltration'];
 
-  const items = [];
+  const items = new Array(count);
   const baseTime = new Date('2026-09-01T08:00:00Z').getTime();
 
   for (let i = 0; i < count; i++) {
@@ -20,7 +20,7 @@ function generateBenchmarkData(caseId, count = 1000) {
     const sev = severities[i % severities.length];
     const tac = tactics[i % tactics.length];
 
-    items.push({
+    items[i] = {
       evidenceId: `BENCH-EV-${caseId}-${i.toString().padStart(6, '0')}`,
       caseId,
       timestamp,
@@ -36,38 +36,103 @@ function generateBenchmarkData(caseId, count = 1000) {
         processId: 1000 + (i % 500),
         parentProcessId: 400 + (i % 200),
         processName: `proc_${i % 20}.exe`,
-        commandLine: `C:\\Windows\\System32\\proc_${i % 20}.exe -k netsvcs -p ${i}`,
+        commandLine: `C:\Windows\System32\proc_${i % 20}.exe -k netsvcs -p ${i}`,
         sourceIp: `10.0.1.${(i % 200) + 1}`,
         remoteIp: `198.51.100.${(i % 50) + 1}`,
         bytesTransferred: 1024 + (i * 17) % 50000,
         sha256: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.split('').reverse().join('')
       }
-    });
+    };
   }
   return items;
 }
 
 /**
- * Run comprehensive benchmark comparing:
- * 1. Embedded Schema (all evidence in array in case doc)
- * 2. Referenced Schema (separate cases and evidence collections)
- * 3. Hybrid Bucket Schema (50 events grouped per bucket document)
+ * Retrieve robust collection statistics using collStats command with aggregate $collStats fallback
  */
-async function runSchemaBenchmark(itemCount = 2000, queryIterations = 15) {
+async function getCollectionStats(db, collName) {
+  try {
+    const stats = await db.command({ collStats: collName });
+    return {
+      storageSize: stats.storageSize || 0,
+      dataSize: stats.size || 0,
+      totalIndexSize: stats.totalIndexSize || 0,
+      count: stats.count || 0,
+      avgObjSize: stats.avgObjSize || 0,
+      compressionRatio: stats.size > 0 && stats.storageSize > 0 
+        ? Number((stats.size / stats.storageSize).toFixed(2)) 
+        : 1.0
+    };
+  } catch (_) {
+    try {
+      const agg = await db.collection(collName).aggregate([{ $collStats: { storageStats: {} } }]).toArray();
+      if (agg.length > 0 && agg[0].storageStats) {
+        const s = agg[0].storageStats;
+        return {
+          storageSize: s.storageSize || 0,
+          dataSize: s.size || 0,
+          totalIndexSize: s.totalIndexSize || 0,
+          count: s.count || 0,
+          avgObjSize: s.avgObjSize || 0,
+          compressionRatio: s.size > 0 && s.storageSize > 0 ? Number((s.size / s.storageSize).toFixed(2)) : 1.0
+        };
+      }
+    } catch (_) {}
+    return { storageSize: 0, dataSize: 0, totalIndexSize: 0, count: 0, avgObjSize: 0, compressionRatio: 1.0 };
+  }
+}
+
+/**
+ * Calculate statistical latency percentiles (min, max, avg, p50, p95, p99)
+ */
+function calcPercentiles(durations) {
+  if (!durations || durations.length === 0) {
+    return { min: 0, max: 0, avg: 0, p50: 0, p95: 0, p99: 0 };
+  }
+  durations.sort((a, b) => a - b);
+  const len = durations.length;
+  return {
+    min: Number(durations[0].toFixed(2)),
+    max: Number(durations[len - 1].toFixed(2)),
+    avg: Number((durations.reduce((acc, v) => acc + v, 0) / len).toFixed(2)),
+    p50: Number(durations[Math.floor(len * 0.5)].toFixed(2)),
+    p95: Number(durations[Math.floor(len * 0.95)].toFixed(2)),
+    p99: Number(durations[Math.floor(len * 0.99)].toFixed(2))
+  };
+}
+
+/**
+ * Run comprehensive NoSQL scalability experiment:
+ * 1. Embedded Schema (array in document)
+ * 2. Referenced Schema (normalized collections with indexes)
+ * 3. Hybrid Bucket Schema (time-bucketed grouping of 50 events)
+ * Supports 1,000, 10,000, 50,000, and 100,000 records.
+ */
+async function runSchemaBenchmark(itemCount = 1000, queryIterations = 15) {
   const db = getDB();
   const testCaseId = `CASE-BENCH-${Date.now()}`;
-  const evidenceItems = generateBenchmarkData(testCaseId, itemCount);
+  const count = parseInt(itemCount, 10) || 1000;
+  const effectiveIterations = Math.min(queryIterations, count >= 50000 ? 5 : 15);
 
-  console.log(`[Benchmark] Starting experiment with ${itemCount} items, ${queryIterations} iterations...`);
+  console.log(`[Benchmark] Starting experiment with ${count} items, ${effectiveIterations} iterations...`);
 
-  // ==========================================
-  // PHASE 1: INGESTION BENCHMARK
-  // ==========================================
+  // Purge older benchmark artifacts to keep storage measurement clean
+  try {
+    await Promise.allSettled([
+      db.collection('schema_bench_embedded').deleteMany({}),
+      db.collection('schema_bench_referenced_cases').deleteMany({}),
+      db.collection('schema_bench_referenced_items').deleteMany({}),
+      db.collection('schema_bench_hybrid').deleteMany({})
+    ]);
+  } catch (_) {}
+
+  const evidenceItems = generateBenchmarkData(testCaseId, count);
+
   const results = {
     metadata: {
       timestamp: new Date(),
-      sampleSize: itemCount,
-      iterations: queryIterations,
+      sampleSize: count,
+      iterations: effectiveIterations,
       mongodbVersion: (await db.admin().command({ buildInfo: 1 })).version
     },
     ingestion: {},
@@ -77,45 +142,61 @@ async function runSchemaBenchmark(itemCount = 2000, queryIterations = 15) {
     analysisInsights: []
   };
 
+  // ==========================================
+  // PHASE 1: INGESTION BENCHMARK
+  // ==========================================
+
   // 1.1 Ingest Embedded Schema
   const t0_emb = process.hrtime.bigint();
   let embeddedError = null;
-  try {
-    await db.collection('schema_bench_embedded').insertOne({
-      caseId: testCaseId,
-      caseNumber: `INC-${testCaseId}`,
-      createdAt: new Date(),
-      itemCount,
-      evidence: evidenceItems
-    });
-  } catch (err) {
-    embeddedError = err.message;
-    console.warn(`[Benchmark] Embedded insert error (likely 16MB limit): ${err.message}`);
+  // Estimate BSON size: ~850 bytes per item
+  const estimatedEmbeddedBytes = count * 850;
+  if (estimatedEmbeddedBytes > 16 * 1024 * 1024) {
+    embeddedError = `Document exceeds maximum allowed BSON size (16MB limit). Estimated size: ${(estimatedEmbeddedBytes / (1024 * 1024)).toFixed(2)} MB for ${count} items.`;
+    console.warn(`[Benchmark] Embedded skipped: ${embeddedError}`);
+  } else {
+    try {
+      await db.collection('schema_bench_embedded').insertOne({
+        caseId: testCaseId,
+        caseNumber: `INC-${testCaseId}`,
+        createdAt: new Date(),
+        itemCount: count,
+        evidence: evidenceItems
+      });
+    } catch (err) {
+      embeddedError = err.message;
+      console.warn(`[Benchmark] Embedded insert error (16MB limit reached): ${err.message}`);
+    }
   }
   const t1_emb = process.hrtime.bigint();
   results.ingestion.embedded = {
     durationMs: embeddedError ? -1 : Number(t1_emb - t0_emb) / 1e6,
-    throughputItemsPerSec: embeddedError ? 0 : Math.round(itemCount / (Number(t1_emb - t0_emb) / 1e9)),
+    throughputItemsPerSec: embeddedError ? 0 : Math.round(count / (Number(t1_emb - t0_emb) / 1e9)),
     error: embeddedError
   };
 
-  // 1.2 Ingest Referenced Schema
+  // 1.2 Ingest Referenced Schema (batched in 5,000 item chunks)
   const t0_ref = process.hrtime.bigint();
   await db.collection('schema_bench_referenced_cases').insertOne({
     caseId: testCaseId,
     caseNumber: `INC-${testCaseId}`,
     createdAt: new Date(),
-    itemCount
+    itemCount: count
   });
-  await db.collection('schema_bench_referenced_items').insertMany(evidenceItems);
+
+  const REF_CHUNK_SIZE = 5000;
+  for (let i = 0; i < evidenceItems.length; i += REF_CHUNK_SIZE) {
+    const chunk = evidenceItems.slice(i, i + REF_CHUNK_SIZE);
+    await db.collection('schema_bench_referenced_items').insertMany(chunk, { ordered: false });
+  }
   const t1_ref = process.hrtime.bigint();
   results.ingestion.referenced = {
     durationMs: Number(t1_ref - t0_ref) / 1e6,
-    throughputItemsPerSec: Math.round(itemCount / (Number(t1_ref - t0_ref) / 1e9)),
+    throughputItemsPerSec: Math.round(count / (Number(t1_ref - t0_ref) / 1e9)),
     error: null
   };
 
-  // 1.3 Ingest Hybrid Bucket Schema (bucket size = 50)
+  // 1.3 Ingest Hybrid Bucket Schema (bucket size = 50 items per document)
   const BUCKET_SIZE = 50;
   const buckets = [];
   for (let i = 0; i < evidenceItems.length; i += BUCKET_SIZE) {
@@ -131,11 +212,15 @@ async function runSchemaBenchmark(itemCount = 2000, queryIterations = 15) {
   }
 
   const t0_hyb = process.hrtime.bigint();
-  await db.collection('schema_bench_hybrid').insertMany(buckets);
+  const HYB_CHUNK_SIZE = 1000;
+  for (let i = 0; i < buckets.length; i += HYB_CHUNK_SIZE) {
+    const chunk = buckets.slice(i, i + HYB_CHUNK_SIZE);
+    await db.collection('schema_bench_hybrid').insertMany(chunk, { ordered: false });
+  }
   const t1_hyb = process.hrtime.bigint();
   results.ingestion.hybrid = {
     durationMs: Number(t1_hyb - t0_hyb) / 1e6,
-    throughputItemsPerSec: Math.round(itemCount / (Number(t1_hyb - t0_hyb) / 1e9)),
+    throughputItemsPerSec: Math.round(count / (Number(t1_hyb - t0_hyb) / 1e9)),
     bucketsCount: buckets.length,
     error: null
   };
@@ -143,27 +228,9 @@ async function runSchemaBenchmark(itemCount = 2000, queryIterations = 15) {
   // ==========================================
   // PHASE 2: STORAGE OVERHEAD BENCHMARK
   // ==========================================
-  async function getCollectionStats(collName) {
-    try {
-      const stats = await db.command({ collStats: collName });
-      return {
-        storageSize: stats.storageSize || 0,
-        dataSize: stats.size || 0,
-        totalIndexSize: stats.totalIndexSize || 0,
-        count: stats.count || 0,
-        avgObjSize: stats.avgObjSize || 0,
-        compressionRatio: stats.size > 0 && stats.storageSize > 0 
-          ? Number((stats.size / stats.storageSize).toFixed(2)) 
-          : 1.0
-      };
-    } catch {
-      return { storageSize: 0, dataSize: 0, totalIndexSize: 0, count: 0, avgObjSize: 0, compressionRatio: 1.0 };
-    }
-  }
-
-  results.storage.embedded = await getCollectionStats('schema_bench_embedded');
-  const refCaseStats = await getCollectionStats('schema_bench_referenced_cases');
-  const refItemStats = await getCollectionStats('schema_bench_referenced_items');
+  results.storage.embedded = await getCollectionStats(db, 'schema_bench_embedded');
+  const refCaseStats = await getCollectionStats(db, 'schema_bench_referenced_cases');
+  const refItemStats = await getCollectionStats(db, 'schema_bench_referenced_items');
   results.storage.referenced = {
     storageSize: refCaseStats.storageSize + refItemStats.storageSize,
     dataSize: refCaseStats.dataSize + refItemStats.dataSize,
@@ -172,30 +239,18 @@ async function runSchemaBenchmark(itemCount = 2000, queryIterations = 15) {
     avgObjSize: refItemStats.avgObjSize,
     compressionRatio: Number(((refCaseStats.dataSize + refItemStats.dataSize) / (refCaseStats.storageSize + refItemStats.storageSize || 1)).toFixed(2))
   };
-  results.storage.hybrid = await getCollectionStats('schema_bench_hybrid');
+  results.storage.hybrid = await getCollectionStats(db, 'schema_bench_hybrid');
 
   // ==========================================
   // PHASE 3: QUERY LATENCY BENCHMARK
   // ==========================================
-  function calcPercentiles(durations) {
-    durations.sort((a, b) => a - b);
-    const len = durations.length;
-    return {
-      min: Number(durations[0].toFixed(2)),
-      max: Number(durations[len - 1].toFixed(2)),
-      avg: Number((durations.reduce((acc, v) => acc + v, 0) / len).toFixed(2)),
-      p50: Number(durations[Math.floor(len * 0.5)].toFixed(2)),
-      p95: Number(durations[Math.floor(len * 0.95)].toFixed(2)),
-      p99: Number(durations[Math.floor(len * 0.99)].toFixed(2))
-    };
-  }
 
   // 3.1 Test A: Full Incident Reconstruction Query
   const latReconEmb = [];
   const latReconRef = [];
   const latReconHyb = [];
 
-  for (let it = 0; it < queryIterations; it++) {
+  for (let it = 0; it < effectiveIterations; it++) {
     // Embedded: single findOne
     if (!embeddedError) {
       const t0 = process.hrtime.bigint();
@@ -230,13 +285,13 @@ async function runSchemaBenchmark(itemCount = 2000, queryIterations = 15) {
 
   // 3.2 Test B: Time Window Range Query (first 25% of timeline)
   const windowStart = evidenceItems[0].timestamp;
-  const windowEnd = evidenceItems[Math.floor(itemCount * 0.25)].timestamp;
+  const windowEnd = evidenceItems[Math.floor(count * 0.25)].timestamp;
 
   const latRangeEmb = [];
   const latRangeRef = [];
   const latRangeHyb = [];
 
-  for (let it = 0; it < queryIterations; it++) {
+  for (let it = 0; it < effectiveIterations; it++) {
     // Embedded
     if (!embeddedError) {
       const t0 = process.hrtime.bigint();
@@ -273,7 +328,7 @@ async function runSchemaBenchmark(itemCount = 2000, queryIterations = 15) {
       latRangeRef.push(Number(t1 - t0) / 1e6);
     }
 
-    // Hybrid
+    // Hybrid (bucket temporal interval match)
     {
       const t0 = process.hrtime.bigint();
       const bucketsRes = await db.collection('schema_bench_hybrid')
@@ -289,12 +344,12 @@ async function runSchemaBenchmark(itemCount = 2000, queryIterations = 15) {
   }
 
   // 3.3 Test C: Single Item Update (simulate adding forensic note or status change)
-  const targetEvidenceId = evidenceItems[Math.floor(itemCount / 2)].evidenceId;
+  const targetEvidenceId = evidenceItems[Math.floor(count / 2)].evidenceId;
   const latUpdateEmb = [];
   const latUpdateRef = [];
   const latUpdateHyb = [];
 
-  for (let it = 0; it < queryIterations; it++) {
+  for (let it = 0; it < effectiveIterations; it++) {
     // Embedded: array element update
     if (!embeddedError) {
       const t0 = process.hrtime.bigint();
@@ -361,22 +416,22 @@ async function runSchemaBenchmark(itemCount = 2000, queryIterations = 15) {
   }
 
   results.retrievalAccuracy = {
-    expectedCount: itemCount,
+    expectedCount: count,
     embedded: {
       retrievedCount: embRetrieved,
-      accuracyPct: embeddedError ? 0 : Number(((embRetrieved / itemCount) * 100).toFixed(2)),
-      limitationTriggered: embeddedError !== null || itemCount > 12000,
-      limitationReason: embeddedError || (itemCount > 12000 ? 'Exceeds BSON 16MB document size limit' : 'None')
+      accuracyPct: embeddedError ? 0 : Number(((embRetrieved / count) * 100).toFixed(2)),
+      limitationTriggered: embeddedError !== null,
+      limitationReason: embeddedError || (count > 12000 ? 'Exceeds BSON 16MB document size limit' : 'None')
     },
     referenced: {
       retrievedCount: refRetrieved,
-      accuracyPct: Number(((refRetrieved / itemCount) * 100).toFixed(2)),
+      accuracyPct: Number(((refRetrieved / count) * 100).toFixed(2)),
       limitationTriggered: false,
       limitationReason: 'None (Unbounded scaling)'
     },
     hybrid: {
       retrievedCount: hybRetrieved,
-      accuracyPct: Number(((hybRetrieved / itemCount) * 100).toFixed(2)),
+      accuracyPct: Number(((hybRetrieved / count) * 100).toFixed(2)),
       limitationTriggered: false,
       limitationReason: 'None (Time-bucket partitioning)'
     }
@@ -402,6 +457,26 @@ async function runSchemaBenchmark(itemCount = 2000, queryIterations = 15) {
     }
   ];
 
+  // Backward-compatibility and cross-version property aliases
+  results.queryLatencies = results.queryLatency;
+  results.storageFootprint = {
+    embedded: {
+      dataSizeKB: Number((results.storage.embedded.dataSize / 1024).toFixed(2)),
+      storageSizeKB: Number((results.storage.embedded.storageSize / 1024).toFixed(2)),
+      indexSizeKB: Number((results.storage.embedded.totalIndexSize / 1024).toFixed(2))
+    },
+    referenced: {
+      dataSizeKB: Number((results.storage.referenced.dataSize / 1024).toFixed(2)),
+      storageSizeKB: Number((results.storage.referenced.storageSize / 1024).toFixed(2)),
+      indexSizeKB: Number((results.storage.referenced.totalIndexSize / 1024).toFixed(2))
+    },
+    hybrid: {
+      dataSizeKB: Number((results.storage.hybrid.dataSize / 1024).toFixed(2)),
+      storageSizeKB: Number((results.storage.hybrid.storageSize / 1024).toFixed(2)),
+      indexSizeKB: Number((results.storage.hybrid.totalIndexSize / 1024).toFixed(2))
+    }
+  };
+
   // Top-level schema design summaries for easy consumption
   results.embedded = {
     storage: results.storage.embedded,
@@ -419,13 +494,16 @@ async function runSchemaBenchmark(itemCount = 2000, queryIterations = 15) {
     accuracy: results.retrievalAccuracy.hybrid
   };
 
+  // Validate results prior to database persistence
+  validateBenchmarkResults(results, count);
+
   // Persist experiment run into MongoDB schema_experiments collection
   try {
     const experimentId = `EXP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const experimentDoc = {
       experimentId,
-      itemCount,
-      iterations: queryIterations,
+      itemCount: count,
+      iterations: effectiveIterations,
       createdAt: new Date(),
       results
     };
@@ -433,18 +511,110 @@ async function runSchemaBenchmark(itemCount = 2000, queryIterations = 15) {
     results.experimentId = experimentId;
   } catch (err) {
     console.warn('[Benchmark] Could not persist to schema_experiments:', err.message);
+    throw err;
   }
 
   return results;
 }
 
+/**
+ * Validate that benchmark execution results are complete and valid before persistence
+ */
+function validateBenchmarkResults(results, count) {
+  if (!results || typeof results !== 'object') {
+    throw new Error('Benchmark validation failed: Results object is null or missing.');
+  }
+
+  // 1. Metadata check
+  if (!results.metadata || !results.metadata.sampleSize || !results.metadata.iterations) {
+    throw new Error('Benchmark validation failed: Missing metadata (sampleSize or iterations).');
+  }
+
+  // 2. Storage check
+  if (!results.storage || !results.storage.embedded || !results.storage.referenced || !results.storage.hybrid) {
+    throw new Error('Benchmark validation failed: Incomplete storage metrics for one or more schema models.');
+  }
+  for (const model of ['embedded', 'referenced', 'hybrid']) {
+    const s = results.storage[model];
+    if (s.storageSize === undefined || s.totalIndexSize === undefined) {
+      throw new Error(`Benchmark validation failed: Missing storageSize or totalIndexSize for ${model}.`);
+    }
+  }
+
+  // 3. Query Latency check
+  if (!results.queryLatency || !results.queryLatency.fullReconstruction) {
+    throw new Error('Benchmark validation failed: Missing fullReconstruction query latency.');
+  }
+
+  const recon = results.queryLatency.fullReconstruction;
+  if (!recon.referenced || typeof recon.referenced.p50 !== 'number') {
+    throw new Error('Benchmark validation failed: Missing p50 reconstruction latency for Referenced schema.');
+  }
+  if (!recon.hybrid || typeof recon.hybrid.p50 !== 'number') {
+    throw new Error('Benchmark validation failed: Missing p50 reconstruction latency for Hybrid schema.');
+  }
+  if (!results.retrievalAccuracy?.embedded?.limitationTriggered) {
+    if (!recon.embedded || typeof recon.embedded.p50 !== 'number') {
+      throw new Error('Benchmark validation failed: Missing p50 reconstruction latency for Embedded schema.');
+    }
+  }
+
+  // 4. Retrieval Accuracy check
+  if (!results.retrievalAccuracy || typeof results.retrievalAccuracy.expectedCount !== 'number') {
+    throw new Error('Benchmark validation failed: Missing retrievalAccuracy expectedCount.');
+  }
+  if (typeof results.retrievalAccuracy.referenced?.accuracyPct !== 'number' ||
+      typeof results.retrievalAccuracy.hybrid?.accuracyPct !== 'number') {
+    throw new Error('Benchmark validation failed: Missing accuracyPct for Referenced or Hybrid models.');
+  }
+
+  return true;
+}
+
 async function getExperimentHistory() {
   const db = getDB();
-  return db.collection('schema_experiments').find({}).sort({ createdAt: -1 }).limit(20).toArray();
+  const rawDocs = await db.collection('schema_experiments').find({}).sort({ createdAt: -1 }).limit(20).toArray();
+
+  // Normalize legacy and modern records for seamless frontend consumption
+  return rawDocs.map(doc => {
+    const res = doc.results || {};
+
+    // Normalize queryLatency and queryLatencies
+    const ql = res.queryLatency || res.queryLatencies || {};
+    res.queryLatency = ql;
+    res.queryLatencies = ql;
+
+    // Normalize storage and storageFootprint
+    if (!res.storage && res.storageFootprint) {
+      res.storage = {
+        embedded: {
+          storageSize: Math.round((res.storageFootprint.embedded?.storageSizeKB || 0) * 1024),
+          dataSize: Math.round((res.storageFootprint.embedded?.dataSizeKB || 0) * 1024),
+          totalIndexSize: Math.round((res.storageFootprint.embedded?.indexSizeKB || 0) * 1024)
+        },
+        referenced: {
+          storageSize: Math.round((res.storageFootprint.referenced?.storageSizeKB || 0) * 1024),
+          dataSize: Math.round((res.storageFootprint.referenced?.dataSizeKB || 0) * 1024),
+          totalIndexSize: Math.round((res.storageFootprint.referenced?.indexSizeKB || 0) * 1024)
+        },
+        hybrid: {
+          storageSize: Math.round((res.storageFootprint.hybrid?.storageSizeKB || 0) * 1024),
+          dataSize: Math.round((res.storageFootprint.hybrid?.dataSizeKB || 0) * 1024),
+          totalIndexSize: Math.round((res.storageFootprint.hybrid?.indexSizeKB || 0) * 1024)
+        }
+      };
+    }
+
+    doc.results = res;
+    doc.itemCount = doc.itemCount || res.metadata?.sampleSize || res.retrievalAccuracy?.expectedCount || 1000;
+    doc.iterations = doc.iterations || res.metadata?.iterations || 15;
+    return doc;
+  });
 }
 
 module.exports = {
   runSchemaBenchmark,
   generateBenchmarkData,
-  getExperimentHistory
+  getExperimentHistory,
+  validateBenchmarkResults
 };

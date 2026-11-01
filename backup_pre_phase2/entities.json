@@ -1,0 +1,528 @@
+[
+  {
+    "_id": "6ae57fe903a3f1f24cf2aff9",
+    "entityType": "HOST",
+    "normalizedValue": "idp-sso.cloud.globalcorp.com",
+    "createdAt": "2026-10-31T05:43:05.923Z",
+    "entityId": "ENT-1793425385923-bjdcy1",
+    "evidenceIds": [
+      "EV-APT29-001"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:14:22.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2affa",
+    "normalizedValue": "203.0.113.88",
+    "entityType": "IP",
+    "createdAt": "2026-10-31T05:43:05.925Z",
+    "entityId": "ENT-1793425385925-ucw0ec",
+    "evidenceIds": [
+      "EV-APT29-001"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:14:22.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2affb",
+    "entityType": "USER",
+    "normalizedValue": "sarah.chen@globalcorp.com",
+    "createdAt": "2026-10-31T05:43:05.926Z",
+    "entityId": "ENT-1793425385926-qpoi5r",
+    "evidenceIds": [
+      "EV-APT29-001",
+      "EV-APT29-002"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:18:05.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2afff",
+    "normalizedValue": "graph-api.cloud.globalcorp.com",
+    "entityType": "HOST",
+    "createdAt": "2026-10-31T05:43:05.935Z",
+    "entityId": "ENT-1793425385935-fnq7bt",
+    "evidenceIds": [
+      "EV-APT29-002"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:18:05.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b000",
+    "entityType": "IP",
+    "normalizedValue": "198.51.100.42",
+    "createdAt": "2026-10-31T05:43:05.935Z",
+    "entityId": "ENT-1793425385935-5iadzp",
+    "evidenceIds": [
+      "EV-APT29-002"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:18:05.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b004",
+    "normalizedValue": "ws-dev-04.corp.lan",
+    "entityType": "HOST",
+    "createdAt": "2026-10-31T05:43:05.944Z",
+    "entityId": "ENT-1793425385944-zdeq8d",
+    "evidenceIds": [
+      "EV-APT29-003",
+      "EV-APT29-005",
+      "EV-APT29-006",
+      "EV-APT29-007",
+      "EV-APT29-008",
+      "EV-APT29-009",
+      "EV-APT29-010"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T09:40:00.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b005",
+    "entityType": "USER",
+    "normalizedValue": "sarah.chen",
+    "createdAt": "2026-10-31T05:43:05.945Z",
+    "entityId": "ENT-1793425385945-1gv7t1",
+    "evidenceIds": [
+      "EV-APT29-003",
+      "EV-APT29-006",
+      "EV-APT29-007"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:44:30.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b006",
+    "normalizedValue": "powershell.exe",
+    "entityType": "PROCESS",
+    "createdAt": "2026-10-31T05:43:05.946Z",
+    "entityId": "ENT-1793425385946-nodrmd",
+    "evidenceIds": [
+      "EV-APT29-003"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:35:10.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b007",
+    "entityType": "PROCESS",
+    "normalizedValue": "unmonitored_launcher.exe",
+    "createdAt": "2026-10-31T05:43:05.947Z",
+    "entityId": "ENT-1793425385947-we2b4e",
+    "evidenceIds": [
+      "EV-APT29-003"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:35:10.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b008",
+    "normalizedValue": "73573c2356c9a75d5e23be2a9b2b2a6f112c018287e07a3c75ab9d2666a4bc4a",
+    "entityType": "HASH",
+    "createdAt": "2026-10-31T05:43:05.947Z",
+    "entityId": "ENT-1793425385947-ekg3mq",
+    "evidenceIds": [
+      "EV-APT29-003"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:35:10.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b013",
+    "entityType": "HOST",
+    "normalizedValue": "edge-proxy-01.corp.lan",
+    "createdAt": "2026-10-31T05:43:05.960Z",
+    "entityId": "ENT-1793425385960-y6nhh0",
+    "evidenceIds": [
+      "EV-APT29-004"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:36:00.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b014",
+    "normalizedValue": "system_update.dll",
+    "entityType": "FILE",
+    "createdAt": "2026-10-31T05:43:05.961Z",
+    "entityId": "ENT-1793425385961-5bij75",
+    "evidenceIds": [
+      "EV-APT29-004",
+      "EV-APT29-005"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:36:12.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b015",
+    "entityType": "HASH",
+    "normalizedValue": "a1b2c3d4e5f60718293a4b5c6d7e8f901234567890abcdef1234567890abcdef",
+    "createdAt": "2026-10-31T05:43:05.962Z",
+    "entityId": "ENT-1793425385962-lrhm3v",
+    "evidenceIds": [
+      "EV-APT29-004"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:36:00.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b019",
+    "entityType": "HASH",
+    "normalizedValue": "f9e8d7c6b5a403211234567890abcdef9876543210fedcba0987654321fedcba",
+    "createdAt": "2026-10-31T05:43:05.970Z",
+    "entityId": "ENT-1793425385970-gza9qe",
+    "evidenceIds": [
+      "EV-APT29-005"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:36:12.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b01d",
+    "entityType": "PROCESS",
+    "normalizedValue": "certutil.exe",
+    "createdAt": "2026-10-31T05:43:05.979Z",
+    "entityId": "ENT-1793425385979-e9ouwo",
+    "evidenceIds": [
+      "EV-APT29-006"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:42:00.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b020",
+    "normalizedValue": "wmic.exe",
+    "entityType": "PROCESS",
+    "createdAt": "2026-10-31T05:43:05.987Z",
+    "entityId": "ENT-1793425385987-rzqvac",
+    "evidenceIds": [
+      "EV-APT29-007"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:44:30.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b023",
+    "entityType": "IP",
+    "normalizedValue": "10.0.1.14",
+    "createdAt": "2026-10-31T05:43:05.994Z",
+    "entityId": "ENT-1793425385994-knrkzr",
+    "evidenceIds": [
+      "EV-APT29-008"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:52:10.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b024",
+    "normalizedValue": "10.0.0.2",
+    "entityType": "IP",
+    "createdAt": "2026-10-31T05:43:05.995Z",
+    "entityId": "ENT-1793425385995-8anic0",
+    "evidenceIds": [
+      "EV-APT29-008"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:52:10.000Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2b025",
+    "entityType": "USER",
+    "normalizedValue": "domain\\sarah.chen",
+    "createdAt": "2026-10-31T05:43:05.995Z",
+    "entityId": "ENT-1793425385995-z8asdg",
+    "evidenceIds": [
+      "EV-APT29-008"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T08:52:10.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b02c",
+    "normalizedValue": "185.220.101.5",
+    "entityType": "IP",
+    "createdAt": "2026-10-31T05:43:06.005Z",
+    "entityId": "ENT-1793425386005-xj9wks",
+    "evidenceIds": [
+      "EV-APT29-009",
+      "EV-APT29-010"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T09:40:00.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b02d",
+    "entityType": "DOMAIN",
+    "normalizedValue": "azure-telemetry-cdn.net",
+    "createdAt": "2026-10-31T05:43:06.006Z",
+    "entityId": "ENT-1793425386006-3v2y4e",
+    "evidenceIds": [
+      "EV-APT29-009"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T09:15:00.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b031",
+    "entityType": "FILE",
+    "normalizedValue": "C:\\Users\\sarah.chen\\AppData\\Local\\Temp\\intel_dump.7z",
+    "createdAt": "2026-10-31T05:43:06.016Z",
+    "entityId": "ENT-1793425386016-h227ly",
+    "evidenceIds": [
+      "EV-APT29-010"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T09:40:00.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b032",
+    "normalizedValue": "45b98a12e32a4e98f01b7a2d6c9e0f3148a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3",
+    "entityType": "HASH",
+    "createdAt": "2026-10-31T05:43:06.016Z",
+    "entityId": "ENT-1793425386016-92isge",
+    "evidenceIds": [
+      "EV-APT29-010"
+    ],
+    "investigationIds": [
+      "CASE-2026-APT29"
+    ],
+    "lastSeen": "2026-10-10T09:40:00.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b04a",
+    "entityType": "HOST",
+    "normalizedValue": "vpn-gw-01.corp.lan",
+    "createdAt": "2026-10-31T05:43:06.035Z",
+    "entityId": "ENT-1793425386035-pva1v5",
+    "evidenceIds": [
+      "EV-BC-001"
+    ],
+    "investigationIds": [
+      "CASE-2026-BLACKCAT"
+    ],
+    "lastSeen": "2026-10-11T14:32:00.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b04b",
+    "normalizedValue": "185.191.171.12",
+    "entityType": "IP",
+    "createdAt": "2026-10-31T05:43:06.036Z",
+    "entityId": "ENT-1793425386036-gyg5ne",
+    "evidenceIds": [
+      "EV-BC-001"
+    ],
+    "investigationIds": [
+      "CASE-2026-BLACKCAT"
+    ],
+    "lastSeen": "2026-10-11T14:32:00.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b04c",
+    "entityType": "USER",
+    "normalizedValue": "svc_backup",
+    "createdAt": "2026-10-31T05:43:06.036Z",
+    "entityId": "ENT-1793425386036-i1de9m",
+    "evidenceIds": [
+      "EV-BC-001"
+    ],
+    "investigationIds": [
+      "CASE-2026-BLACKCAT"
+    ],
+    "lastSeen": "2026-10-11T14:32:00.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b050",
+    "entityType": "HOST",
+    "normalizedValue": "fs01.corp.lan",
+    "createdAt": "2026-10-31T05:43:06.040Z",
+    "entityId": "ENT-1793425386040-jan6zl",
+    "evidenceIds": [
+      "EV-BC-002",
+      "EV-BC-003",
+      "EV-BC-004"
+    ],
+    "investigationIds": [
+      "CASE-2026-BLACKCAT"
+    ],
+    "lastSeen": "2026-10-11T14:46:15.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b051",
+    "normalizedValue": "nt authority\\system",
+    "entityType": "USER",
+    "createdAt": "2026-10-31T05:43:06.041Z",
+    "entityId": "ENT-1793425386041-o4dqy0",
+    "evidenceIds": [
+      "EV-BC-002"
+    ],
+    "investigationIds": [
+      "CASE-2026-BLACKCAT"
+    ],
+    "lastSeen": "2026-10-11T14:45:10.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b052",
+    "entityType": "PROCESS",
+    "normalizedValue": "vssadmin.exe",
+    "createdAt": "2026-10-31T05:43:06.041Z",
+    "entityId": "ENT-1793425386041-pm3c5y",
+    "evidenceIds": [
+      "EV-BC-002"
+    ],
+    "investigationIds": [
+      "CASE-2026-BLACKCAT"
+    ],
+    "lastSeen": "2026-10-11T14:45:10.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b05c",
+    "normalizedValue": "vpn-core-uswest.corp.lan",
+    "entityType": "HOST",
+    "createdAt": "2026-10-31T05:43:06.060Z",
+    "entityId": "ENT-1793425386060-n3o9f9",
+    "evidenceIds": [
+      "EV-INS-001"
+    ],
+    "investigationIds": [
+      "CASE-2026-INSIDER"
+    ],
+    "lastSeen": "2026-10-12T22:15:00.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b05d",
+    "entityType": "IP",
+    "normalizedValue": "73.189.44.120",
+    "createdAt": "2026-10-31T05:43:06.061Z",
+    "entityId": "ENT-1793425386061-sf8872",
+    "evidenceIds": [
+      "EV-INS-001"
+    ],
+    "investigationIds": [
+      "CASE-2026-INSIDER"
+    ],
+    "lastSeen": "2026-10-12T22:15:00.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b05e",
+    "normalizedValue": "marcus.vance",
+    "entityType": "USER",
+    "createdAt": "2026-10-31T05:43:06.062Z",
+    "entityId": "ENT-1793425386062-puz5ek",
+    "evidenceIds": [
+      "EV-INS-001",
+      "EV-INS-002"
+    ],
+    "investigationIds": [
+      "CASE-2026-INSIDER"
+    ],
+    "lastSeen": "2026-10-12T22:34:10.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b062",
+    "entityType": "HOST",
+    "normalizedValue": "git-core.corp.lan",
+    "createdAt": "2026-10-31T05:43:06.068Z",
+    "entityId": "ENT-1793425386068-0cihgz",
+    "evidenceIds": [
+      "EV-INS-002"
+    ],
+    "investigationIds": [
+      "CASE-2026-INSIDER"
+    ],
+    "lastSeen": "2026-10-12T22:34:10.000Z"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b064",
+    "entityType": "HOST",
+    "normalizedValue": "ws-eng-88.corp.lan",
+    "createdAt": "2026-10-31T05:43:06.074Z",
+    "entityId": "ENT-1793425386074-rktj3r",
+    "evidenceIds": [
+      "EV-INS-003",
+      "EV-INS-004"
+    ],
+    "investigationIds": [
+      "CASE-2026-INSIDER"
+    ],
+    "lastSeen": "2026-10-12T23:18:40.000Z"
+  },
+  {
+    "_id": "6ae58af903a3f1f24cf2b093",
+    "normalizedValue": "employee-pc-01",
+    "entityType": "HOST",
+    "createdAt": "2026-10-31T06:30:17.298Z",
+    "entityId": "ENT-1793428217298-bxbe20",
+    "evidenceIds": [
+      "EV-1793428217285-317",
+      "EV-1793428217309-365",
+      "EV-1793428217323-464",
+      "EV-1793428217335-141",
+      "EV-1793428217349-680"
+    ],
+    "investigationIds": [
+      "INV-2026-0922"
+    ],
+    "lastSeen": "2026-10-31T02:20:00.000Z"
+  },
+  {
+    "_id": "6ae58af903a3f1f24cf2b094",
+    "entityType": "USER",
+    "normalizedValue": "admin",
+    "createdAt": "2026-10-31T06:30:17.302Z",
+    "entityId": "ENT-1793428217302-lnizs7",
+    "evidenceIds": [
+      "EV-1793428217285-317",
+      "EV-1793428217309-365",
+      "EV-1793428217335-141",
+      "EV-1793428217349-680"
+    ],
+    "investigationIds": [
+      "INV-2026-0922"
+    ],
+    "lastSeen": "2026-10-31T02:20:00.000Z"
+  }
+]

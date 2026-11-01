@@ -1,9 +1,54 @@
 const crypto = require('crypto');
 const { getDB, getClient, getIsReplicaSet, getDBEvents, logMongoOperation } = require('./db');
+const { scoreEvidenceItem, recordMLDetection } = require('./mlService');
 
 function calculateHash(payload) {
   const normalized = typeof payload === 'string' ? payload : JSON.stringify(payload);
   return crypto.createHash('sha256').update(normalized).digest('hex');
+}
+
+const EVIDENCE_MUTABLE_FIELDS = new Set([
+  'title', 'description', 'severity', 'artifactType', 'evidenceType',
+  'sourceHost', 'timestamp', 'eventTimestamp', 'mitreTactic',
+  'mitreTechnique', 'tags', 'metadata'
+]);
+
+function getSafeEvidenceUpdate(updateFields = {}) {
+  if (!updateFields || typeof updateFields !== 'object' || Array.isArray(updateFields)) {
+    throw new Error('Evidence updateFields must be an object.');
+  }
+
+  const safe = {};
+  const metadata = { ...(updateFields.metadata || {}) };
+  for (const [key, value] of Object.entries(updateFields)) {
+    if (key.startsWith('metadata.')) {
+      const metadataKey = key.slice('metadata.'.length);
+      if (!metadataKey || metadataKey.includes('$') || metadataKey.includes('.')) {
+        throw new Error(`Invalid metadata field: ${key}`);
+      }
+      metadata[metadataKey] = value;
+    } else if (EVIDENCE_MUTABLE_FIELDS.has(key) && key !== 'metadata') {
+      safe[key] = value;
+    } else if (key !== 'metadata') {
+      throw new Error(`Field '${key}' is immutable or not permitted in an evidence update.`);
+    }
+  }
+  if (Object.keys(metadata).length > 0) safe.metadata = metadata;
+  if (Object.keys(safe).length === 0) throw new Error('No permitted evidence fields supplied for update.');
+
+  if (safe.timestamp !== undefined && Number.isNaN(new Date(safe.timestamp).getTime())) {
+    throw new Error('timestamp must be a valid ISO-8601 date.');
+  }
+  if (safe.eventTimestamp !== undefined && Number.isNaN(new Date(safe.eventTimestamp).getTime())) {
+    throw new Error('eventTimestamp must be a valid ISO-8601 date.');
+  }
+  if (safe.severity !== undefined) {
+    safe.severity = String(safe.severity).toUpperCase();
+    if (!['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(safe.severity)) {
+      throw new Error('severity must be LOW, MEDIUM, HIGH, or CRITICAL.');
+    }
+  }
+  return safe;
 }
 
 /**
@@ -90,15 +135,33 @@ async function createEvidence(evidenceData, actor = 'SecOps-Ingest') {
   const dbEvents = getDBEvents();
 
   const timestamp = evidenceData.timestamp ? new Date(evidenceData.timestamp) : new Date();
+  if (Number.isNaN(timestamp.getTime())) throw new Error('Evidence timestamp must be a valid ISO-8601 date.');
   const ingestedAt = new Date();
-  const evidenceId = evidenceData.evidenceId || `EV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  const investigationId = evidenceData.investigationId || evidenceData.caseId || 'INV-2026-DEFAULT';
-  const caseId = evidenceData.caseId || investigationId;
+  const evidenceId = evidenceData.evidenceId || `EV-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+  let investigationId = evidenceData.investigationId || evidenceData.caseId || 'INV-2026-DEFAULT';
+  let caseId = evidenceData.caseId || evidenceData.investigationId || investigationId;
+  if ((!evidenceData.caseId || !evidenceData.investigationId) && investigationId !== 'INV-2026-DEFAULT') {
+    try {
+      const parentInv = await db.collection('investigations').findOne({
+        $or: [{ investigationId }, { caseId }]
+      });
+      if (parentInv) {
+        if (parentInv.investigationId) investigationId = parentInv.investigationId;
+        if (parentInv.caseId) caseId = parentInv.caseId;
+      }
+    } catch (_) {}
+  }
 
   const entities = evidenceData.entities && evidenceData.entities.length > 0 
     ? evidenceData.entities 
     : extractEntities(evidenceData);
 
+  let mlPrediction = null;
+  if (evidenceData.mlAnomalyScore === undefined) {
+    try {
+      mlPrediction = await scoreEvidenceItem(evidenceData);
+    } catch (_) {}
+  }
   const initialPayload = {
     investigationId,
     caseId,
@@ -129,6 +192,10 @@ async function createEvidence(evidenceData, actor = 'SecOps-Ingest') {
     tags: evidenceData.tags || [],
     gridfsFileId: evidenceData.gridfsFileId || null,
     integrityStatus: 'VERIFIED',
+    mlAnomalyScore: evidenceData.mlAnomalyScore !== undefined ? evidenceData.mlAnomalyScore : (mlPrediction ? mlPrediction.anomaly_score : null),
+    mlIsAnomaly: evidenceData.mlIsAnomaly !== undefined ? Boolean(evidenceData.mlIsAnomaly) : (mlPrediction ? Boolean(mlPrediction.is_anomaly) : false),
+    mlThreatLevel: evidenceData.mlThreatLevel || (mlPrediction ? mlPrediction.threat_level : 'LOW'),
+    mlExplanation: evidenceData.mlExplanation || (mlPrediction ? mlPrediction.explanation : null),
     provenance: evidenceData.provenance || { source: evidenceData.sourceSystem || 'API_INGEST', ingestedBy: actor },
     createdBy: actor,
     createdAt: ingestedAt,
@@ -136,7 +203,7 @@ async function createEvidence(evidenceData, actor = 'SecOps-Ingest') {
   };
 
   const custodyEntry = {
-    custodyId: `COC-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+    custodyId: `COC-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
     evidenceId,
     investigationId,
     caseId,
@@ -152,7 +219,7 @@ async function createEvidence(evidenceData, actor = 'SecOps-Ingest') {
   };
 
   const auditEntry = {
-    logId: `AUDIT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    logId: `AUDIT-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
     investigationId,
     evidenceId,
     action: 'EVIDENCE_INGESTED',
@@ -200,7 +267,7 @@ async function createEvidence(evidenceData, actor = 'SecOps-Ingest') {
       { entityType: ent.type, normalizedValue: ent.value },
       {
         $setOnInsert: {
-          entityId: `ENT-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+          entityId: `ENT-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
           entityType: ent.type,
           normalizedValue: ent.value,
           createdAt: new Date()
@@ -223,7 +290,7 @@ async function createEvidence(evidenceData, actor = 'SecOps-Ingest') {
           { sourceId: `${entities[i].type}:${entities[i].value}`, targetId: `${entities[j].type}:${entities[j].value}` },
           {
             $setOnInsert: {
-              relationshipId: `REL-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              relationshipId: `REL-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
               sourceId: `${entities[i].type}:${entities[i].value}`,
               targetId: `${entities[j].type}:${entities[j].value}`,
               relationshipType: 'ASSOCIATED_WITH',
@@ -249,6 +316,22 @@ async function createEvidence(evidenceData, actor = 'SecOps-Ingest') {
   const t1 = performance.now();
   logMongoOperation('insertOne', 'evidence', { evidenceId: newDoc.evidenceId, investigationId, title: newDoc.title }, t1 - t0, 1);
 
+  // Record in ml_detections collection if scored
+  if (mlPrediction || evidenceData.mlAnomalyScore !== undefined) {
+    const scoreInfo = mlPrediction || {
+      anomaly_score: newDoc.mlAnomalyScore,
+      is_anomaly: newDoc.mlIsAnomaly,
+      threat_level: newDoc.mlThreatLevel,
+      explanation: newDoc.mlExplanation,
+      confidence: 0.8
+    };
+    try {
+      await recordMLDetection(scoreInfo, newDoc);
+    } catch (detErr) {
+      console.warn('[Evidence ML] Detection persistence note:', detErr.message);
+    }
+  }
+
   dbEvents.emit('EVIDENCE_CREATED', newDoc);
   return newDoc;
 }
@@ -268,13 +351,14 @@ async function updateEvidenceWithVersion(evidenceId, updateFields, actor = 'Fore
     throw new Error(`Evidence with ID ${evidenceId} not found.`);
   }
 
+  const safeUpdateFields = getSafeEvidenceUpdate(updateFields);
   const nextVersion = (currentDoc.version || 1) + 1;
   const previousHash = currentDoc.currentHash;
 
-  const updatedMetadata = { ...currentDoc.metadata, ...(updateFields.metadata || {}) };
+  const updatedMetadata = { ...currentDoc.metadata, ...(safeUpdateFields.metadata || {}) };
   const updatedDocData = {
     ...currentDoc,
-    ...updateFields,
+    ...safeUpdateFields,
     metadata: updatedMetadata,
     version: nextVersion,
     updatedAt: new Date()
@@ -290,7 +374,7 @@ async function updateEvidenceWithVersion(evidenceId, updateFields, actor = 'Fore
   updatedDocData.integrityStatus = 'VERIFIED';
 
   const custodyEntry = {
-    custodyId: `COC-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+    custodyId: `COC-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
     evidenceId,
     investigationId: currentDoc.investigationId || currentDoc.caseId,
     caseId: currentDoc.caseId,
@@ -307,7 +391,7 @@ async function updateEvidenceWithVersion(evidenceId, updateFields, actor = 'Fore
   };
 
   const auditEntry = {
-    logId: `AUDIT-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    logId: `AUDIT-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
     investigationId: currentDoc.investigationId || currentDoc.caseId,
     evidenceId,
     action: 'VERSION_UPDATE',
@@ -407,9 +491,24 @@ async function createEvidenceRelation(relationData) {
   const db = getDB();
   const { caseId, investigationId, sourceEvidenceId, targetEvidenceId, relationType } = relationData;
 
+  if (!sourceEvidenceId || !targetEvidenceId || sourceEvidenceId === targetEvidenceId) {
+    throw new Error('A relationship requires two distinct evidence IDs.');
+  }
+  const source = await db.collection('evidence').findOne({ evidenceId: sourceEvidenceId });
+  const target = await db.collection('evidence').findOne({ evidenceId: targetEvidenceId });
+  if (!source || !target) throw new Error('Both evidence records must exist before a relationship can be created.');
+
+  const sourceInvestigationId = source.investigationId || source.caseId;
+  const targetInvestigationId = target.investigationId || target.caseId;
+  const requestedInvestigationId = investigationId || caseId;
+  if (sourceInvestigationId !== targetInvestigationId ||
+      (requestedInvestigationId && requestedInvestigationId !== sourceInvestigationId && requestedInvestigationId !== source.caseId)) {
+    throw new Error('Evidence relationships must remain within one investigation.');
+  }
+
   const relation = {
-    caseId: caseId || investigationId || 'DEFAULT',
-    investigationId: investigationId || caseId || 'DEFAULT',
+    caseId: source.caseId || sourceInvestigationId,
+    investigationId: source.investigationId || sourceInvestigationId,
     sourceEvidenceId,
     targetEvidenceId,
     relationType: relationType || 'CAUSALLY_PRECEDES',
@@ -437,74 +536,185 @@ async function createEvidenceRelation(relationData) {
   return relation;
 }
 
+function isSha256(value) {
+  return typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value);
+}
+
+function evaluateEvidenceIntegrity(doc) {
+  const calculatedHash = calculateHash(getCanonicalEvidencePayload(doc));
+  const expectedHash = isSha256(doc.currentHash) ? doc.currentHash : null;
+  const isValid = expectedHash === calculatedHash;
+  const verificationResult = isValid
+    ? 'VERIFIED'
+    : (expectedHash ? 'TAMPER_DETECTED' : 'INVALID_STORED_HASH');
+
+  return {
+    evidenceId: doc.evidenceId,
+    investigationId: doc.investigationId || doc.caseId || null,
+    caseId: doc.caseId || doc.investigationId || null,
+    title: doc.title,
+    version: doc.version || 1,
+    expectedHash,
+    calculatedHash,
+    isValid,
+    verificationResult
+  };
+}
+
 /**
- * Recalculate hash of an evidence record and verify integrity
+ * Stores one immutable attempt per scan and upserts a canonical violation event
+ * for the same evidence/hash mismatch. The attempt stream answers "when was it
+ * checked?" while the violation record avoids duplicate alerts on repeat scans.
  */
-async function verifyEvidenceHash(evidenceId) {
+async function recordIntegrityAudit(db, verification, actor, scanId, auditCollection = null) {
+  const auditLogs = auditCollection || db.collection('audit_logs');
+  const timestamp = new Date();
+  const attempt = {
+    logId: `AUDIT-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+    scanId,
+    evidenceId: verification.evidenceId,
+    investigationId: verification.investigationId,
+    caseId: verification.caseId,
+    action: 'INTEGRITY_VERIFICATION_ATTEMPT',
+    actor,
+    timestamp,
+    expectedHash: verification.expectedHash,
+    calculatedHash: verification.calculatedHash,
+    verificationResult: verification.verificationResult,
+    details: {
+      version: verification.version,
+      isValid: verification.isValid
+    }
+  };
+  await auditLogs.insertOne(attempt);
+
+  if (verification.isValid) return { attempt, violation: null };
+
+  const integrityFingerprint = calculateHash({
+    evidenceId: verification.evidenceId,
+    expectedHash: verification.expectedHash || 'MISSING_OR_INVALID',
+    calculatedHash: verification.calculatedHash
+  });
+  const violation = {
+    logId: `AUDIT-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+    integrityFingerprint,
+    evidenceId: verification.evidenceId,
+    investigationId: verification.investigationId,
+    caseId: verification.caseId,
+    action: 'INTEGRITY_VIOLATION_DETECTED',
+    firstDetectedAt: timestamp,
+    details: {
+      version: verification.version,
+      isValid: false
+    }
+  };
+
+  await auditLogs.updateOne(
+    { integrityFingerprint },
+    {
+      $setOnInsert: violation,
+      $set: {
+        lastDetectedAt: timestamp,
+        timestamp,
+        actor,
+        verificationResult: verification.verificationResult,
+        expectedHash: verification.expectedHash,
+        calculatedHash: verification.calculatedHash
+      },
+      $inc: { detectionCount: 1 }
+    },
+    { upsert: true }
+  );
+
+  return { attempt, violation };
+}
+
+async function persistIntegrityOutcome(db, doc, verification, actor, scanId, auditCollection = null) {
+  const verifiedAt = new Date();
+  // currentHash is deliberately never changed by verification. Only a permitted
+  // version update may produce a new hash and matching version snapshot.
+  await db.collection('evidence').updateOne(
+    { _id: doc._id },
+    {
+      $set: {
+        integrityStatus: verification.isValid ? 'VERIFIED' : 'TAMPER_DETECTED',
+        lastVerifiedAt: verifiedAt,
+        lastIntegrityResult: verification.verificationResult
+      }
+    }
+  );
+  return recordIntegrityAudit(db, verification, actor, scanId, auditCollection);
+}
+
+/**
+ * Recalculate hash of one evidence record and persist its verification audit.
+ */
+async function verifyEvidenceHash(evidenceId, actor = 'Integrity-Scanner', options = {}) {
   const db = getDB();
   const doc = await db.collection('evidence').findOne({ evidenceId });
   if (!doc) throw new Error(`Evidence ${evidenceId} not found`);
 
-  const canonicalPayload = getCanonicalEvidencePayload(doc);
-  const recomputedHash = calculateHash(canonicalPayload);
-  const isMatch = (recomputedHash === doc.currentHash);
-
-  // Update status in MongoDB
-  await db.collection('evidence').updateOne(
-    { evidenceId },
-    { $set: { integrityStatus: isMatch ? 'VERIFIED' : 'TAMPER_DETECTED', lastVerifiedAt: new Date() } }
-  );
+  const verification = evaluateEvidenceIntegrity(doc);
+  const scanId = options.scanId || `SCAN-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+  await persistIntegrityOutcome(db, doc, verification, actor, scanId, options.auditCollection);
 
   return {
-    evidenceId,
-    isValid: isMatch,
-    verified: isMatch,
-    currentHash: doc.currentHash,
-    recomputedHash,
+    ...verification,
+    verified: verification.isValid,
+    currentHash: verification.expectedHash,
+    recomputedHash: verification.calculatedHash,
+    scanId,
     timestamp: new Date()
   };
 }
 
 /**
- * Verify integrity of ALL evidence items in database
+ * Verify all evidence. Per-record persistence failures are reported explicitly
+ * instead of being treated as a successful scan.
  */
-async function verifyAllEvidence() {
+async function verifyAllEvidence(actor = 'Integrity-Scanner', options = {}) {
   const db = getDB();
   const allDocs = await db.collection('evidence').find({}).toArray();
-
+  const scanId = options.scanId || `SCAN-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
   let verifiedCount = 0;
   let tamperedCount = 0;
+  let failedCount = 0;
   const violations = [];
+  const errors = [];
 
   for (const doc of allDocs) {
-    const canonicalPayload = getCanonicalEvidencePayload(doc);
-    const recomputedHash = calculateHash(canonicalPayload);
-    const isMatch = (recomputedHash === doc.currentHash);
-
-    if (isMatch) {
-      verifiedCount++;
-    } else {
+    const verification = evaluateEvidenceIntegrity(doc);
+    if (verification.isValid) verifiedCount++;
+    else {
       tamperedCount++;
       violations.push({
-        evidenceId: doc.evidenceId,
-        title: doc.title,
-        expectedHash: doc.currentHash,
-        actualHash: recomputedHash,
-        version: doc.version
+        evidenceId: verification.evidenceId,
+        investigationId: verification.investigationId,
+        title: verification.title,
+        expectedHash: verification.expectedHash,
+        actualHash: verification.calculatedHash,
+        verificationResult: verification.verificationResult,
+        version: verification.version
       });
     }
 
-    await db.collection('evidence').updateOne(
-      { _id: doc._id },
-      { $set: { integrityStatus: isMatch ? 'VERIFIED' : 'TAMPER_DETECTED', lastVerifiedAt: new Date() } }
-    );
+    try {
+      await persistIntegrityOutcome(db, doc, verification, actor, scanId, options.auditCollection);
+    } catch (err) {
+      failedCount++;
+      errors.push({ evidenceId: verification.evidenceId, error: err.message });
+    }
   }
 
   return {
+    completed: failedCount === 0,
+    scanId,
     totalChecked: allDocs.length,
     verifiedCount,
     tamperedCount,
+    failedCount,
     violations,
+    errors,
     scannedAt: new Date()
   };
 }
@@ -516,6 +726,13 @@ async function testTamperEvidence(evidenceId) {
   const db = getDB();
   const doc = await db.collection('evidence').findOne({ evidenceId });
   if (!doc) throw new Error(`Evidence ${evidenceId} not found`);
+
+  // Tampering is intentionally destructive. Permit it only in an isolated test
+  // database or on an evidence record explicitly marked as a controlled fixture.
+  const isIsolatedTestDatabase = /(^|_)(test|qa|validation|audit)(_|$)/i.test(db.databaseName);
+  if (!isIsolatedTestDatabase && !doc.provenance?.controlledTestFixture) {
+    throw new Error('Tamper simulation is restricted to controlled test fixtures.');
+  }
 
   // Intentionally modify payload without re-hashing to trigger tamper detection
   const tamperedTitle = `${doc.title} [TAMPERED_BY_TEST_FIXTURE]`;
@@ -538,8 +755,11 @@ module.exports = {
   createEvidenceRelation,
   verifyEvidenceHash,
   verifyAllEvidence,
+  evaluateEvidenceIntegrity,
+  recordIntegrityAudit,
   testTamperEvidence,
   extractEntities,
   calculateHash,
-  getCanonicalEvidencePayload
+  getCanonicalEvidencePayload,
+  getSafeEvidenceUpdate
 };

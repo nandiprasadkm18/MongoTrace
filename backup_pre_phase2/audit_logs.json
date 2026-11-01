@@ -1,0 +1,360 @@
+[
+  {
+    "_id": "6ae57fe90b4f9924538a175b",
+    "logId": "AUDIT-1793425385918-941",
+    "investigationId": "CASE-2026-APT29",
+    "evidenceId": "EV-APT29-001",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:05.916Z",
+    "resultingHash": "c90d1e5d7536029ff43d1ff6d7e2589d3166da5f4d4ee2d7dd505773e45a88c4",
+    "details": {
+      "title": "OAuth Device Code Authorization Granted",
+      "severity": "HIGH",
+      "artifactType": "SECURITY_EVENT"
+    }
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a175f",
+    "logId": "AUDIT-1793425385931-957",
+    "investigationId": "CASE-2026-APT29",
+    "evidenceId": "EV-APT29-002",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:05.931Z",
+    "resultingHash": "714bee0e19caa077f03c0726b6f3655e957cd4562bd659e8f2d61b48fa104fab",
+    "details": {
+      "title": "Microsoft Graph API Session Initialized",
+      "severity": "CRITICAL",
+      "artifactType": "SECURITY_EVENT"
+    }
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a1763",
+    "logId": "AUDIT-1793425385941-331",
+    "investigationId": "CASE-2026-APT29",
+    "evidenceId": "EV-APT29-003",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:05.941Z",
+    "resultingHash": "2ad0cb342d7389d71bcfd65abdd2bd2b0ee24b71b432c92c749c1a215457e30e",
+    "details": {
+      "title": "Obfuscated PowerShell In-Memory Execution",
+      "severity": "CRITICAL",
+      "artifactType": "PROCESS_SPAWN"
+    }
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a1767",
+    "logId": "AUDIT-1793425385957-620",
+    "investigationId": "CASE-2026-APT29",
+    "evidenceId": "EV-APT29-004",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:05.957Z",
+    "resultingHash": "b5c69051bc4095f5bb40c53a6d61a02db19a031c6b6ae7a233d23d1404d10cec",
+    "details": {
+      "title": "Gateway Inspection: Encrypted Payload Staged",
+      "severity": "HIGH",
+      "artifactType": "FILE_INTEGRITY"
+    }
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a176b",
+    "logId": "AUDIT-1793425385966-334",
+    "investigationId": "CASE-2026-APT29",
+    "evidenceId": "EV-APT29-005",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:05.966Z",
+    "resultingHash": "c46b619db9dcf85ef6c3c289f97fdceeb346289882edaa4ede4d7c9f7a8fec3b",
+    "details": {
+      "title": "Endpoint EDR: Module Injected to System Directory",
+      "severity": "HIGH",
+      "artifactType": "FILE_INTEGRITY"
+    }
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a176f",
+    "logId": "AUDIT-1793425385974-404",
+    "investigationId": "CASE-2026-APT29",
+    "evidenceId": "EV-APT29-006",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:05.974Z",
+    "resultingHash": "439246fac7940aadf82c2f3e4baf57dca012764cdc5ba9e3a9500760109760da",
+    "details": {
+      "title": "Dual-Use Binary Living-off-the-Land Invocation",
+      "severity": "CRITICAL",
+      "artifactType": "PROCESS_SPAWN"
+    }
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a1773",
+    "logId": "AUDIT-1793425385983-286",
+    "investigationId": "CASE-2026-APT29",
+    "evidenceId": "EV-APT29-007",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:05.983Z",
+    "resultingHash": "2ea598fbefba6d39ba7988be1e505e4fac077ac6cebcf8e2e49e9ec0f48ec2a4",
+    "details": {
+      "title": "WMI Query for Remote Domain Controller Discovery",
+      "severity": "CRITICAL",
+      "artifactType": "PROCESS_SPAWN"
+    }
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a1777",
+    "logId": "AUDIT-1793425385990-855",
+    "investigationId": "CASE-2026-APT29",
+    "evidenceId": "EV-APT29-008",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:05.990Z",
+    "resultingHash": "820a12b50f937ab4294989d0f6f934e00280d41a32f4bac7584d498acaf58052",
+    "details": {
+      "title": "Lateral SMB Session Initiated to Primary Domain Controller",
+      "severity": "CRITICAL",
+      "artifactType": "NETWORK_FLOW"
+    }
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a177b",
+    "logId": "AUDIT-1793425386002-371",
+    "investigationId": "CASE-2026-APT29",
+    "evidenceId": "EV-APT29-009",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:06.002Z",
+    "resultingHash": "00c7f6a193f1be415ec634c2bcff3f3d4a5cb65a7fd2f9e085c2148798647621",
+    "details": {
+      "title": "Sustained TLS Beaconing to External Command & Control",
+      "severity": "CRITICAL",
+      "artifactType": "NETWORK_FLOW"
+    }
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a177f",
+    "logId": "AUDIT-1793425386011-200",
+    "investigationId": "CASE-2026-APT29",
+    "evidenceId": "EV-APT29-010",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:06.011Z",
+    "resultingHash": "cda7dec0c126d59f9b417e603811dfc3a17791d4ff153d7df9eb9308d5beac45",
+    "details": {
+      "title": "Bulk Archive Compression and Exfiltration Transfer",
+      "severity": "CRITICAL",
+      "artifactType": "APPLICATION_LOG"
+    }
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a1783",
+    "logId": "AUDIT-1793425386033-485",
+    "investigationId": "CASE-2026-BLACKCAT",
+    "evidenceId": "EV-BC-001",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:06.033Z",
+    "resultingHash": "c003389eea7a576486b66310e362512611ef14771c8769ab3309188f89f98122",
+    "details": {
+      "title": "VPN Service Brute-Force Authentication Spike",
+      "severity": "HIGH",
+      "artifactType": "SECURITY_EVENT"
+    }
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a1787",
+    "logId": "AUDIT-1793425386039-145",
+    "investigationId": "CASE-2026-BLACKCAT",
+    "evidenceId": "EV-BC-002",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:06.039Z",
+    "resultingHash": "142b986f51050bdcdec341f5ed573551f6f21c33f3b22d310426c5ee9f3dbd0c",
+    "details": {
+      "title": "Inhibit System Recovery: Shadow Copies Wiped",
+      "severity": "CRITICAL",
+      "artifactType": "PROCESS_SPAWN"
+    }
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a178b",
+    "logId": "AUDIT-1793425386045-474",
+    "investigationId": "CASE-2026-BLACKCAT",
+    "evidenceId": "EV-BC-003",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:06.045Z",
+    "resultingHash": "f0394ace8502304f0bace91934909d4b83b6e40f8d446e5aa3cd1f55d53873f3",
+    "details": {
+      "title": "Mass File Encryption Burst - Batch 1",
+      "severity": "CRITICAL",
+      "artifactType": "FILE_INTEGRITY"
+    }
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a178f",
+    "logId": "AUDIT-1793425386049-295",
+    "investigationId": "CASE-2026-BLACKCAT",
+    "evidenceId": "EV-BC-004",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:06.049Z",
+    "resultingHash": "fb4261c4e44ac0f91ae39228b7e069efd5dd516fed989c99b15233c8d34635da",
+    "details": {
+      "title": "Mass File Encryption Burst - Batch 2",
+      "severity": "CRITICAL",
+      "artifactType": "FILE_INTEGRITY"
+    }
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a1793",
+    "logId": "AUDIT-1793425386058-985",
+    "investigationId": "CASE-2026-INSIDER",
+    "evidenceId": "EV-INS-001",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:06.058Z",
+    "resultingHash": "e33f5cd5d6a9b3f0e8299cc0730e76f52011766cb4f248872811e86f7a825afd",
+    "details": {
+      "title": "Off-Hours Anomalous VPN Authentication",
+      "severity": "HIGH",
+      "artifactType": "SECURITY_EVENT"
+    }
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a1797",
+    "logId": "AUDIT-1793425386066-702",
+    "investigationId": "CASE-2026-INSIDER",
+    "evidenceId": "EV-INS-002",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:06.066Z",
+    "resultingHash": "fddcab8a5eff17380bd6ca657fe6b2a95c9fb5278c1b5d856ca654e6cb9ce57b",
+    "details": {
+      "title": "Mass Archive Clone of Autonomous Driving Patents",
+      "severity": "HIGH",
+      "artifactType": "APPLICATION_LOG"
+    }
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a179b",
+    "logId": "AUDIT-1793425386071-379",
+    "investigationId": "CASE-2026-INSIDER",
+    "evidenceId": "EV-INS-003",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:06.071Z",
+    "resultingHash": "a3621213cfdc8d0f12c1ae6863c1612dae10a9270a55fa3b6abac0782b9e61ae",
+    "details": {
+      "title": "Removable Storage Media Insertion & Registry Mounting",
+      "severity": "CRITICAL",
+      "artifactType": "PROCESS_SPAWN"
+    }
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a179f",
+    "logId": "AUDIT-1793425386075-906",
+    "investigationId": "CASE-2026-INSIDER",
+    "evidenceId": "EV-INS-004",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "Seed-Loader",
+    "timestamp": "2026-10-31T05:43:06.075Z",
+    "resultingHash": "424ac37e43eaecfeba810eab6288cabb4b08765af46be42adcb5d3f04031967c",
+    "details": {
+      "title": "Bulk Copy of Proprietary Archives to Removable Media",
+      "severity": "CRITICAL",
+      "artifactType": "FILE_INTEGRITY"
+    }
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a17a2",
+    "logId": "AUDIT-1793425386088-73",
+    "investigationId": "CASE-2026-APT29",
+    "evidenceId": "EV-APT29-002",
+    "action": "VERSION_UPDATE",
+    "actor": "Alex Mercer (Lead)",
+    "timestamp": "2026-10-31T05:43:06.088Z",
+    "previousHash": "714bee0e19caa077f03c0726b6f3655e957cd4562bd659e8f2d61b48fa104fab",
+    "resultingHash": "c00fc133ab244c48a4330f47a12139b8cd232b83772516fec7be963d4cc6437a",
+    "reason": "Threat Intel IOC Enrichment",
+    "version": 2
+  },
+  {
+    "_id": "6ae58af9d595275a1cb26fd3",
+    "logId": "AUDIT-1793428217286-427",
+    "investigationId": "INV-2026-0922",
+    "evidenceId": "EV-1793428217285-317",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "SecOps-Ingest",
+    "timestamp": "2026-10-31T06:30:17.285Z",
+    "resultingHash": "2e2027d147791e813755c249fe7732de39631ded24920481c0ba1736f974129b",
+    "details": {
+      "title": "Unusual SSH Authentication from Foreign IP",
+      "severity": "HIGH",
+      "artifactType": "SECURITY_EVENT"
+    }
+  },
+  {
+    "_id": "6ae58af9d595275a1cb26fd7",
+    "logId": "AUDIT-1793428217309-306",
+    "investigationId": "INV-2026-0922",
+    "evidenceId": "EV-1793428217309-365",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "SecOps-Ingest",
+    "timestamp": "2026-10-31T06:30:17.309Z",
+    "resultingHash": "6d766d0b8780a3fafa135c2ff4998138a25b4f7733c760febac397d476060c0e",
+    "details": {
+      "title": "Suspicious PowerShell Execution",
+      "severity": "HIGH",
+      "artifactType": "PROCESS_SPAWN"
+    }
+  },
+  {
+    "_id": "6ae58af9d595275a1cb26fdb",
+    "logId": "AUDIT-1793428217323-925",
+    "investigationId": "INV-2026-0922",
+    "evidenceId": "EV-1793428217323-464",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "SecOps-Ingest",
+    "timestamp": "2026-10-31T06:30:17.323Z",
+    "resultingHash": "6aca25aa667eb51b67fb8080f1bde262333def5763984aa5edc8f9daf9440ad6",
+    "details": {
+      "title": "Unusual External Network Connection",
+      "severity": "HIGH",
+      "artifactType": "NETWORK_FLOW"
+    }
+  },
+  {
+    "_id": "6ae58af9d595275a1cb26fdf",
+    "logId": "AUDIT-1793428217335-56",
+    "investigationId": "INV-2026-0922",
+    "evidenceId": "EV-1793428217335-141",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "SecOps-Ingest",
+    "timestamp": "2026-10-31T06:30:17.335Z",
+    "resultingHash": "d2414e77d89e8a8bbe8e81247c19316dd029327aed0d767eace6f89c99c760cb",
+    "details": {
+      "title": "Confidential File Modification",
+      "severity": "CRITICAL",
+      "artifactType": "FILE_INTEGRITY"
+    }
+  },
+  {
+    "_id": "6ae58af9d595275a1cb26fe3",
+    "logId": "AUDIT-1793428217349-438",
+    "investigationId": "INV-2026-0922",
+    "evidenceId": "EV-1793428217349-680",
+    "action": "EVIDENCE_INGESTED",
+    "actor": "SecOps-Ingest",
+    "timestamp": "2026-10-31T06:30:17.349Z",
+    "resultingHash": "c64b48e1b6ff2bec75dd9f7d7bc6c479be1cec76bd43933d64d768d83dcf1006",
+    "details": {
+      "title": "Archive Transfer to Removable Media",
+      "severity": "CRITICAL",
+      "artifactType": "APPLICATION_LOG"
+    }
+  }
+]

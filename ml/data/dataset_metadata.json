@@ -1,0 +1,96 @@
+{
+  "dataset_name": "MongoTrace Cybersecurity Intrusion & Forensics Benchmark",
+  "reference_benchmarks": [
+    {
+      "name": "UNSW-NB15",
+      "institution": "Cyber Range Lab of the Australian Centre for Cyber Security (ACCS)",
+      "citation": "Moustafa, Nour, and Jill Slay. 'UNSW-NB15: a comprehensive data set for network intrusion detection systems.' MilCIS, IEEE, 2015."
+    },
+    {
+      "name": "NSL-KDD",
+      "institution": "University of New Brunswick (UNB)",
+      "citation": "Tavallaee, M., et al. 'A detailed analysis of the KDD CUP 99 data set.' IEEE CISDA, 2009."
+    }
+  ],
+  "created_at": "2026-10-31T12:30:00Z",
+  "partitions": {
+    "train": {
+      "file": "cybersecurity_telemetry_train.csv",
+      "total_records": 5000,
+      "normal_records": 4400,
+      "anomaly_records": 600,
+      "anomaly_ratio": 0.12
+    },
+    "validation": {
+      "file": "cybersecurity_telemetry_val.csv",
+      "total_records": 1500,
+      "normal_records": 1275,
+      "anomaly_records": 225,
+      "anomaly_ratio": 0.15
+    }
+  },
+  "feature_definitions": [
+    {
+      "feature": "duration",
+      "type": "float",
+      "unit": "seconds",
+      "description": "Connection duration or execution elapsed time."
+    },
+    {
+      "feature": "src_bytes",
+      "type": "int",
+      "unit": "bytes",
+      "description": "Source-to-destination transaction payload bytes."
+    },
+    {
+      "feature": "dst_bytes",
+      "type": "int",
+      "unit": "bytes",
+      "description": "Destination-to-source transaction payload bytes."
+    },
+    {
+      "feature": "service_port",
+      "type": "int",
+      "unit": "port",
+      "description": "Destination service port (e.g. 443, 80, 4444, 3389)."
+    },
+    {
+      "feature": "conn_count",
+      "type": "int",
+      "unit": "count",
+      "description": "Connections to same destination within sampling window."
+    },
+    {
+      "feature": "is_lotl",
+      "type": "int",
+      "unit": "binary flag",
+      "description": "Living-off-the-Land binary invocation (e.g. powershell, certutil, wmic)."
+    },
+    {
+      "feature": "payload_entropy",
+      "type": "float",
+      "unit": "shannon bits",
+      "description": "Shannon entropy of payload/command line (0.0 to 8.0). High values indicate encryption/packing."
+    },
+    {
+      "feature": "off_hours_score",
+      "type": "float",
+      "unit": "score (0-1)",
+      "description": "Temporal anomaly score derived from execution hour."
+    },
+    {
+      "feature": "failed_logins",
+      "type": "int",
+      "unit": "count",
+      "description": "Preceding authentication failure count."
+    }
+  ],
+  "attack_categories_represented": [
+    "Normal",
+    "Exfiltration",
+    "Command_and_Control",
+    "Living_Off_The_Land",
+    "Credential_Brute_Force",
+    "Ransomware_Encryption"
+  ]
+}

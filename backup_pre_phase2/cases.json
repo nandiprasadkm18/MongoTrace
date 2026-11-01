@@ -1,0 +1,74 @@
+[
+  {
+    "_id": "6ae57fe903a3f1f24cf2aff4",
+    "caseId": "CASE-2026-APT29",
+    "assignedInvestigator": "Det. Alex Mercer (Forensics Lead)",
+    "caseNumber": "INC-2026-0881",
+    "createdAt": "2026-10-10T08:00:00.000Z",
+    "description": "Nation-state adversary compromised corporate identity via device code phishing, moved laterally across hybrid domain, and staged exfiltration.",
+    "investigationId": "INV-2026-0881",
+    "investigationNumber": "INC-2026-0881",
+    "leadInvestigator": "Det. Alex Mercer (Forensics Lead)",
+    "notes": [
+      {
+        "noteId": "NOTE-1",
+        "text": "Adversary leveraged compromised OAuth 2.0 device code. Forensics image acquired from domain controller.",
+        "author": "Alex Mercer",
+        "timestamp": "2026-10-10T12:00:00.000Z"
+      }
+    ],
+    "severity": "CRITICAL",
+    "status": "Open",
+    "threatActor": "APT29 / Nobelium",
+    "title": "Operation Midnight Blizzard: Advanced Cloud Ingress & EDR Bypass",
+    "updatedAt": "2026-10-31T05:43:05.866Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2aff6",
+    "caseId": "CASE-2026-BLACKCAT",
+    "assignedInvestigator": "Elena Rostova (Incident Commander)",
+    "caseNumber": "INC-2026-0914",
+    "createdAt": "2026-10-11T14:30:00.000Z",
+    "description": "Ransomware deployment targeting database clusters with shadow copy inhibition and rapid encryption burst.",
+    "investigationId": "INV-2026-0914",
+    "investigationNumber": "INC-2026-0914",
+    "leadInvestigator": "Elena Rostova (Incident Commander)",
+    "notes": [
+      {
+        "noteId": "NOTE-2",
+        "text": "Vssadmin command identified on db01. Storage snapshots isolated.",
+        "author": "Elena Rostova",
+        "timestamp": "2026-10-11T16:00:00.000Z"
+      }
+    ],
+    "severity": "CRITICAL",
+    "status": "In Progress",
+    "threatActor": "BlackCat / ALPHV",
+    "title": "BlackCat / ALPHV Double-Extortion Ransomware Incursion",
+    "updatedAt": "2026-10-31T05:43:05.866Z"
+  },
+  {
+    "_id": "6ae57fe903a3f1f24cf2aff8",
+    "caseId": "CASE-2026-INSIDER",
+    "assignedInvestigator": "Marcus Vance",
+    "caseNumber": "INC-2026-0922",
+    "createdAt": "2026-10-12T19:00:00.000Z",
+    "description": "Anomalous off-hours access to confidential cloud repositories by departing engineer.",
+    "investigationId": "INV-2026-0922",
+    "investigationNumber": "INC-2026-0922",
+    "leadInvestigator": "Marcus Vance",
+    "notes": [
+      {
+        "noteId": "NOTE-3",
+        "text": "HR notification received regarding departure date. DLP logs flagged anomalous USB volume.",
+        "author": "Marcus Vance",
+        "timestamp": "2026-10-12T20:00:00.000Z"
+      }
+    ],
+    "severity": "HIGH",
+    "status": "Under Review",
+    "threatActor": "Insider Threat",
+    "title": "Project Chimera: Insider Source Code & Patent Exfiltration",
+    "updatedAt": "2026-10-31T05:43:05.866Z"
+  }
+]

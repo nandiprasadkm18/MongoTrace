@@ -1,0 +1,34 @@
+[
+  {
+    "_id": "6ae57fe90b4f9924538a1755",
+    "length": 280,
+    "chunkSize": 261120,
+    "uploadDate": "2026-10-31T05:43:05.911Z",
+    "filename": "capture_perimeter_ingress_c2.pcap",
+    "metadata": {
+      "evidenceId": "EV-APT29-001",
+      "caseId": "CASE-2026-APT29",
+      "contentType": "application/vnd.tcpdump.pcap",
+      "sha256Checksum": "5524b422b1b258336938ea5741754eadd560b8490f70b682978031d83e4c6b69",
+      "uploadedBy": "Forensic-Collector",
+      "description": "Raw PCAP packet capture of TLS handshake to adversary C2 domain.",
+      "uploadedAt": "2026-10-31T05:43:05.876Z"
+    }
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a1757",
+    "length": 536,
+    "chunkSize": 261120,
+    "uploadDate": "2026-10-31T05:43:05.914Z",
+    "filename": "volatility_memory_proc_4812.raw",
+    "metadata": {
+      "evidenceId": "EV-APT29-003",
+      "caseId": "CASE-2026-APT29",
+      "contentType": "application/octet-stream",
+      "sha256Checksum": "573e4af52ceaf83e74a0175caf2b4f14ade3ec9f6f293038a87b67ebc8747c69",
+      "uploadedBy": "Forensic-Collector",
+      "description": "Carved VAD memory space snippet containing injected shellcode.",
+      "uploadedAt": "2026-10-31T05:43:05.913Z"
+    }
+  }
+]

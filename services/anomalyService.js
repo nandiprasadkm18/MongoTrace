@@ -4,21 +4,26 @@ const { getDB } = require('./db');
  * Self-Evolving Digital Evidence Intelligence Engine:
  * Detects Missing Links, Conflicting Evidence, and Suspicious Event Sequences
  */
-async function analyzeCaseAnomalies(caseId) {
+async function analyzeCaseAnomalies(caseOrInvestigationId) {
   const db = getDB();
 
+  const idQuery = {
+    $or: [{ caseId: caseOrInvestigationId }, { investigationId: caseOrInvestigationId }]
+  };
+
   const evidence = await db.collection('evidence')
-    .find({ caseId })
+    .find(idQuery)
     .sort({ timestamp: 1 })
     .toArray();
 
   const relations = await db.collection('evidence_relations')
-    .find({ caseId })
+    .find(idQuery)
     .toArray();
 
   if (!evidence || evidence.length === 0) {
     return {
-      caseId,
+      investigationId: caseOrInvestigationId,
+      caseId: caseOrInvestigationId,
       missingLinks: [],
       conflictingEvidence: [],
       suspiciousSequences: [],
@@ -41,7 +46,8 @@ async function analyzeCaseAnomalies(caseId) {
   }
 
   return {
-    caseId,
+    investigationId: caseOrInvestigationId,
+    caseId: caseOrInvestigationId,
     timestamp: new Date(),
     missingLinks,
     conflictingEvidence,
@@ -181,6 +187,11 @@ function detectMissingLinks(evidence, relations) {
  * 2. Conflicting Evidence Identification
  * Flags contradicting timestamps, impossible travel, conflicting hashes, and mismatched identities
  */
+function isPrivateIp(ip) {
+  if (!ip || typeof ip !== 'string') return true;
+  return ip.startsWith('10.') || ip.startsWith('192.168.') || ip.startsWith('127.') || ip === 'localhost' || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
+}
+
 function detectConflictingEvidence(evidence) {
   const conflicts = [];
 
@@ -212,7 +223,7 @@ function detectConflictingEvidence(evidence) {
 
         // If different locations or different external subnets within 15 minutes
         const diffLocation = l1.location !== 'Unknown' && l2.location !== 'Unknown' && l1.location !== l2.location;
-        const diffIps = l1.ip && l2.ip && l1.ip !== l2.ip && !l1.ip.startsWith('10.') && !l1.ip.startsWith('192.168.') && !l2.ip.startsWith('10.');
+        const diffIps = l1.ip && l2.ip && l1.ip !== l2.ip && !isPrivateIp(l1.ip) && !isPrivateIp(l2.ip);
 
         if ((diffLocation || diffIps) && timeDiffMinutes < 20) {
           conflicts.push({

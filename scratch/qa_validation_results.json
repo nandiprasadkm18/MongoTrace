@@ -1,0 +1,315 @@
+{
+  "startTime": "2026-11-01T07:21:16.645Z",
+  "tasks": {
+    "TASK_1_INGESTION": {
+      "status": "PASSED",
+      "acceptedRecords": 2,
+      "jobId": "JOB-2026-1793517676983-549"
+    },
+    "TASK_2_INTEGRITY": {
+      "status": "PASSED",
+      "evidenceId": "EV-1793517677115-58b79183",
+      "genesisHash": "fab515ae05566ce54b56294f4c396a5bce29d3e5adad5213a60d66e15049b0ba",
+      "tamperedHash": "483e46602bd2be509ea7c1b37c425eaf8d6a21d8ee10a5bea64309ccf87f5c95",
+      "detectionSuccess": true
+    },
+    "TASK_3_RULES": {
+      "status": "PASSED",
+      "findingsCount": 1,
+      "ruleTriggered": "Rapid Threat Burst",
+      "anomaliesAnalyzed": 7
+    },
+    "TASK_4_ML_PREDICTION": {
+      "status": "PASSED",
+      "model": "IsolationForest",
+      "n_estimators": 150,
+      "contamination": 0.12,
+      "validation_accuracy": 0.998,
+      "validation_roc_auc": 1,
+      "normalScore": 0.3057,
+      "normalIsAnomaly": false,
+      "attackScore": 0.7332,
+      "attackIsAnomaly": true,
+      "attackThreat": "HIGH",
+      "attackTopFeatures": [
+        {
+          "feature": "src_bytes",
+          "raw_value": 85000000,
+          "z_score": 18.63,
+          "deviation_weight": 18.63
+        },
+        {
+          "feature": "duration",
+          "raw_value": 180,
+          "z_score": 6.34,
+          "deviation_weight": 6.34
+        },
+        {
+          "feature": "is_lotl",
+          "raw_value": 1,
+          "z_score": 4.41,
+          "deviation_weight": 4.41
+        }
+      ]
+    },
+    "TASK_5_ML_PERSISTENCE": {
+      "status": "PASSED",
+      "detectionId": "MLD-1793517677346-43a8c21d",
+      "isIdempotent": true,
+      "statsVerified": true
+    },
+    "TASK_6_FILTERING": {
+      "status": "PASSED",
+      "scopeACount": 2,
+      "harmonizationVerified": true
+    },
+    "TASK_7_GRAPH": {
+      "status": "PASSED",
+      "nodesCount": 7,
+      "edgesCount": 6,
+      "nodeTypes": [
+        "EVIDENCE",
+        "HOST",
+        "IP",
+        "USER",
+        "FILE",
+        "HASH"
+      ]
+    },
+    "TASK_8_TIMELINE": {
+      "status": "PASSED",
+      "eventsCount": 3,
+      "isChronological": true,
+      "firstEvent": "2026-10-15T08:00:00.000Z",
+      "lastEvent": "2026-10-15T09:30:00.000Z",
+      "durationMinutes": 90
+    },
+    "TASK_9_REPORT": {
+      "status": "PASSED",
+      "facetsVerified": [
+        "timeline",
+        "metrics",
+        "severityDistribution",
+        "artifactDistribution",
+        "hostActivity",
+        "knowledgeGraph",
+        "csvSerialization"
+      ]
+    },
+    "TASK_10_OFFLINE_TOLERANCE": {
+      "status": "PASSED",
+      "fallbackScore": 0.99,
+      "fallbackThreat": "CRITICAL",
+      "provider": "local_heuristic_fallback",
+      "resilienceVerified": true
+    },
+    "TASK_11_BENCHMARK": {
+      "status": "PASSED",
+      "scalesEvaluated": [
+        1000,
+        10000,
+        50000,
+        100000
+      ]
+    }
+  },
+  "benchmarkResults": {
+    "1000": {
+      "itemCount": 1000,
+      "durationMs": 477.9,
+      "ingestion": {
+        "embedded": {
+          "durationMs": 17.9753,
+          "throughput": 55632,
+          "error": null
+        },
+        "referenced": {
+          "durationMs": 25.9,
+          "throughput": 38589
+        },
+        "hybrid": {
+          "durationMs": 25.6,
+          "throughput": 39028,
+          "buckets": 20
+        }
+      },
+      "storage": {
+        "embeddedStorageBytes": 4096,
+        "referencedStorageBytes": 8192,
+        "hybridStorageBytes": 4096,
+        "referencedIndexBytes": 8192,
+        "hybridIndexBytes": 4096
+      },
+      "latencyP50": {
+        "reconstructionEmbedded": 9.76,
+        "reconstructionReferenced": 14.65,
+        "reconstructionHybrid": 11.28,
+        "updateReferenced": 1.49,
+        "updateHybrid": 0.93
+      },
+      "accuracy": {
+        "embedded": 100,
+        "embeddedLimited": false,
+        "referenced": 100,
+        "hybrid": 100
+      }
+    },
+    "10000": {
+      "itemCount": 10000,
+      "durationMs": 3047.7,
+      "ingestion": {
+        "embedded": {
+          "durationMs": 80.8075,
+          "throughput": 123751,
+          "error": null
+        },
+        "referenced": {
+          "durationMs": 98.6,
+          "throughput": 101377
+        },
+        "hybrid": {
+          "durationMs": 71.4,
+          "throughput": 140064,
+          "buckets": 200
+        }
+      },
+      "storage": {
+        "embeddedStorageBytes": 131072,
+        "referencedStorageBytes": 172032,
+        "hybridStorageBytes": 155648,
+        "referencedIndexBytes": 45056,
+        "hybridIndexBytes": 20480
+      },
+      "latencyP50": {
+        "reconstructionEmbedded": 93.47,
+        "reconstructionReferenced": 134.81,
+        "reconstructionHybrid": 121.39,
+        "updateReferenced": 10.29,
+        "updateHybrid": 2.26
+      },
+      "accuracy": {
+        "embedded": 100,
+        "embeddedLimited": false,
+        "referenced": 100,
+        "hybrid": 100
+      }
+    },
+    "50000": {
+      "itemCount": 50000,
+      "durationMs": 5640.9,
+      "ingestion": {
+        "embedded": {
+          "durationMs": -1,
+          "throughput": 0,
+          "error": "16MB Limit Reached"
+        },
+        "referenced": {
+          "durationMs": 599.2,
+          "throughput": 83440
+        },
+        "hybrid": {
+          "durationMs": 433.8,
+          "throughput": 115264,
+          "buckets": 1000
+        }
+      },
+      "storage": {
+        "embeddedStorageBytes": 12288,
+        "referencedStorageBytes": 7823360,
+        "hybridStorageBytes": 12288,
+        "referencedIndexBytes": 782336,
+        "hybridIndexBytes": 12288
+      },
+      "latencyP50": {
+        "reconstructionEmbedded": "N/A",
+        "reconstructionReferenced": 1085.11,
+        "reconstructionHybrid": 587.34,
+        "updateReferenced": 19.91,
+        "updateHybrid": 21.59
+      },
+      "accuracy": {
+        "embedded": 0,
+        "embeddedLimited": true,
+        "referenced": 100,
+        "hybrid": 100
+      }
+    },
+    "100000": {
+      "itemCount": 100000,
+      "durationMs": 11039.4,
+      "ingestion": {
+        "embedded": {
+          "durationMs": -1,
+          "throughput": 0,
+          "error": "16MB Limit Reached"
+        },
+        "referenced": {
+          "durationMs": 1521.4,
+          "throughput": 65731
+        },
+        "hybrid": {
+          "durationMs": 966.7,
+          "throughput": 103445,
+          "buckets": 2000
+        }
+      },
+      "storage": {
+        "embeddedStorageBytes": 12288,
+        "referencedStorageBytes": 13651968,
+        "hybridStorageBytes": 10129408,
+        "referencedIndexBytes": 1241088,
+        "hybridIndexBytes": 53248
+      },
+      "latencyP50": {
+        "reconstructionEmbedded": "N/A",
+        "reconstructionReferenced": 1558.21,
+        "reconstructionHybrid": 1056.17,
+        "updateReferenced": 89.46,
+        "updateHybrid": 35.83
+      },
+      "accuracy": {
+        "embedded": 0,
+        "embeddedLimited": true,
+        "referenced": 100,
+        "hybrid": 100
+      }
+    }
+  },
+  "mlEvaluationResults": {
+    "model": "IsolationForest",
+    "n_estimators": 150,
+    "contamination": 0.12,
+    "validation_accuracy": 0.998,
+    "validation_roc_auc": 1,
+    "normalScore": 0.3057,
+    "normalIsAnomaly": false,
+    "attackScore": 0.7332,
+    "attackIsAnomaly": true,
+    "attackThreat": "HIGH",
+    "attackTopFeatures": [
+      {
+        "feature": "src_bytes",
+        "raw_value": 85000000,
+        "z_score": 18.63,
+        "deviation_weight": 18.63
+      },
+      {
+        "feature": "duration",
+        "raw_value": 180,
+        "z_score": 6.34,
+        "deviation_weight": 6.34
+      },
+      {
+        "feature": "is_lotl",
+        "raw_value": 1,
+        "z_score": 4.41,
+        "deviation_weight": 4.41
+      }
+    ]
+  },
+  "securityAudit": {},
+  "failures": [],
+  "passedCount": 11,
+  "failedCount": 0,
+  "endTime": "2026-11-01T07:21:37.874Z"
+}

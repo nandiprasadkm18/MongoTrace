@@ -1,0 +1,45 @@
+[
+  {
+    "_id": "6ae57fea03a3f1f24cf2b06b",
+    "ruleId": "RULE-AUTH-01",
+    "confidence": 0.94,
+    "description": "Detects initial OAuth device code phishing followed immediately by script execution and credential harvesting.",
+    "enabled": true,
+    "name": "Spearphishing to Device Code Authorization",
+    "ruleType": "SUSPICIOUS_SEQUENCE",
+    "sequence": [
+      "Initial Access",
+      "Execution",
+      "Credential Access"
+    ],
+    "severity": "CRITICAL"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b06c",
+    "ruleId": "RULE-RANSOM-02",
+    "confidence": 0.98,
+    "description": "Identifies ransomware sequence: vssadmin deletion of volume shadow copies followed by rapid bulk file renaming.",
+    "enabled": true,
+    "name": "Volume Shadow Copy Invalidation & Mass Encryption",
+    "ruleType": "SUSPICIOUS_SEQUENCE",
+    "sequence": [
+      "Defense Evasion",
+      "Impact"
+    ],
+    "severity": "CRITICAL"
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b06d",
+    "ruleId": "RULE-EXFIL-03",
+    "confidence": 0.91,
+    "description": "Alerts when source code repositories are compressed into 7z/zip archives and copied to external USB volumes.",
+    "enabled": true,
+    "name": "Mass Archive Exfiltration over Removable Media",
+    "ruleType": "SUSPICIOUS_SEQUENCE",
+    "sequence": [
+      "Collection",
+      "Exfiltration"
+    ],
+    "severity": "HIGH"
+  }
+]

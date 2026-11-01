@@ -2,8 +2,8 @@ const { createEvidence, createEvidenceRelation, updateEvidenceWithVersion } = re
 const { uploadEvidenceFile } = require('../services/gridfsService');
 const { getDB } = require('../services/db');
 
-async function seedCyberScenarios() {
-  const db = getDB();
+async function seedCyberScenarios(customDb = null) {
+  const db = customDb || getDB();
 
   console.log('[Seed] Checking existing telemetry in MongoDB...');
   const investigationsCount = await db.collection('investigations').countDocuments();
@@ -113,6 +113,7 @@ async function seedCyberScenarios() {
       description: 'User sarah.chen initiated OAuth 2.0 device code authorization flow from Tokyo geolocation.',
       mitreTactic: 'Initial Access',
       mitreTechnique: 'T1566.002 - Spearphishing Link',
+      provenance: { source: 'DEMO_DATASET', controlledTestFixture: true },
       gridfsFileId: pcapGridFile.fileId,
       metadata: {
         user: 'sarah.chen@globalcorp.com',

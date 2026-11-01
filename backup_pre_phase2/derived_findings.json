@@ -1,0 +1,58 @@
+[
+  {
+    "_id": "6ae57fea03a3f1f24cf2b06e",
+    "findingId": "FIND-2026-001",
+    "caseId": "CASE-2026-APT29",
+    "confidence": 0.94,
+    "createdAt": "2026-10-10T09:00:00.000Z",
+    "detectionRuleId": "RULE-AUTH-01",
+    "detectionTimestamp": "2026-10-10T09:00:00.000Z",
+    "explanation": "OAuth device code granted from Japanese IP immediately followed by PowerShell memory injection and LSASS dump on ws-finance-044.",
+    "investigationId": "INV-2026-0881",
+    "reviewStatus": "CONFIRMED",
+    "ruleName": "Spearphishing to Device Code Authorization",
+    "severity": "CRITICAL",
+    "supportingEvidenceIds": [
+      "EV-APT29-001",
+      "EV-APT29-002",
+      "EV-APT29-004"
+    ]
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b06f",
+    "findingId": "FIND-2026-002",
+    "caseId": "CASE-2026-BLACKCAT",
+    "confidence": 0.98,
+    "createdAt": "2026-10-11T14:35:00.000Z",
+    "detectionRuleId": "RULE-RANSOM-02",
+    "detectionTimestamp": "2026-10-11T14:35:00.000Z",
+    "explanation": "Shadow copies wiped on db01 followed by 18,400 file encryptions in under 4 minutes with .blackcat extension.",
+    "investigationId": "INV-2026-0914",
+    "reviewStatus": "CONFIRMED",
+    "ruleName": "Volume Shadow Copy Invalidation & Mass Encryption",
+    "severity": "CRITICAL",
+    "supportingEvidenceIds": [
+      "EV-BC-001",
+      "EV-BC-002"
+    ]
+  },
+  {
+    "_id": "6ae57fea03a3f1f24cf2b070",
+    "findingId": "FIND-2026-003",
+    "caseId": "CASE-2026-INSIDER",
+    "confidence": 0.92,
+    "createdAt": "2026-10-12T23:25:00.000Z",
+    "detectionRuleId": "RULE-EXFIL-03",
+    "detectionTimestamp": "2026-10-12T23:25:00.000Z",
+    "explanation": "Confidential patent repositories cloned and compressed to 7z, then transferred to SanDisk USB drive (Serial: AA010505191147043812).",
+    "investigationId": "INV-2026-0922",
+    "reviewStatus": "IN_REVIEW",
+    "ruleName": "Mass Archive Exfiltration over Removable Media",
+    "severity": "HIGH",
+    "supportingEvidenceIds": [
+      "EV-INS-002",
+      "EV-INS-003",
+      "EV-INS-004"
+    ]
+  }
+]

@@ -7,13 +7,19 @@
     "start": "node server.js",
     "dev": "node server.js",
     "seed": "node check_db.js",
-    "test": "node tests/run_tests.js"
+    "clear": "node clear_db.js",
+    "test": "node tests/run_tests.js",
+    "ml": "python -m uvicorn ml.api:app --host 127.0.0.1 --port 5055",
+    "ml:train": "python -m ml.train",
+    "ml:test": "python -m ml.test_ml_pipeline"
   },
   "keywords": [
     "mongodb",
     "digital-forensics",
     "evidence-management",
-    "incident-reconstruction"
+    "incident-reconstruction",
+    "machine-learning",
+    "isolation-forest"
   ],
   "author": "",
   "license": "Apache-2.0",

@@ -12,6 +12,7 @@ class EvidenceGraph {
     this.data = { nodes: [], edges: [] };
     this.filterSeverity = 'ALL';
     this.filterArtifact = 'ALL';
+    this.filterEntityType = 'ALL';
     this.isKillChainHighlighted = false;
 
     this.init();
@@ -78,10 +79,18 @@ class EvidenceGraph {
     this.applyFilters();
   }
 
+  setEntityType(entityType) {
+    this.filterEntityType = (entityType || 'ALL').toUpperCase();
+    this.applyFilters();
+  }
+
   applyFilters() {
     if (!this.rawNodes) return;
 
-    let filteredNodes = this.rawNodes.filter(node => {
+    const eFilter = (this.filterEntityType || 'ALL').toUpperCase();
+
+    // 1. Evidence filtering by severity and artifactType
+    let baseNodes = this.rawNodes.filter(node => {
       if (node.type === 'EVIDENCE') {
         if (this.filterSeverity !== 'ALL' && node.severity !== this.filterSeverity) return false;
         if (this.filterArtifact !== 'ALL' && node.artifactType !== this.filterArtifact) return false;
@@ -89,7 +98,42 @@ class EvidenceGraph {
       return true;
     });
 
-    const activeNodeIds = new Set(filteredNodes.map(n => n.id));
+    // 2. Entity filtering by entity type (HOST, USER, IP, PROCESS, FILE/HASH)
+    let finalNodes = [];
+    if (eFilter === 'ALL') {
+      finalNodes = baseNodes;
+    } else {
+      const matchTypes = new Set();
+      if (eFilter === 'FILE') {
+        matchTypes.add('FILE');
+        matchTypes.add('HASH');
+      } else {
+        matchTypes.add(eFilter);
+      }
+
+      // Collect IDs of entities matching the chosen type
+      const targetEntityIds = new Set(
+        baseNodes.filter(n => matchTypes.has(n.type)).map(n => n.id)
+      );
+
+      // Collect evidence IDs directly linked to these entities
+      const linkedEvidenceIds = new Set();
+      this.rawEdges.forEach(e => {
+        const sId = e.source.id || e.source;
+        const tId = e.target.id || e.target;
+        if (targetEntityIds.has(sId)) linkedEvidenceIds.add(tId);
+        if (targetEntityIds.has(tId)) linkedEvidenceIds.add(sId);
+      });
+
+      // Keep matching entity nodes AND their directly linked evidence nodes
+      finalNodes = baseNodes.filter(n => {
+        if (matchTypes.has(n.type)) return true;
+        if (n.type === 'EVIDENCE' && linkedEvidenceIds.has(n.id)) return true;
+        return false;
+      });
+    }
+
+    const activeNodeIds = new Set(finalNodes.map(n => n.id));
     const filteredEdges = this.rawEdges.filter(e => 
       activeNodeIds.has(e.source.id || e.source) && activeNodeIds.has(e.target.id || e.target)
     );
@@ -100,10 +144,12 @@ class EvidenceGraph {
       connectedNodeIds.add(e.target.id || e.target);
     });
 
-    filteredNodes = filteredNodes.filter(n => n.type === 'EVIDENCE' || connectedNodeIds.has(n.id));
+    finalNodes = finalNodes.filter(n => 
+      n.type === 'EVIDENCE' || connectedNodeIds.has(n.id) || (eFilter !== 'ALL' && n.type !== 'EVIDENCE')
+    );
 
     this.data = {
-      nodes: filteredNodes,
+      nodes: finalNodes,
       edges: filteredEdges
     };
 

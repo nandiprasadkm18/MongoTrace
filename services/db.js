@@ -1,9 +1,18 @@
+if (typeof process.loadEnvFile === 'function') { try { process.loadEnvFile(); } catch (_) {} }
 const { MongoClient, GridFSBucket } = require('mongodb');
 const EventEmitter = require('events');
 
 // Primary connection string: supports cloud MongoDB Atlas URI or local service
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://127.0.0.1:27017';
 const DB_NAME = process.env.DB_NAME || 'mongotrace';
+
+// Configure reliable DNS servers for Atlas SRV lookups on Windows if srv protocol is used
+if (MONGO_URI.startsWith('mongodb+srv://')) {
+  try {
+    const dns = require('dns');
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+  } catch (_) {}
+}
 
 let client = null;
 let db = null;
@@ -47,6 +56,16 @@ function logMongoOperation(operation, collection, payload, durationMs, resultCou
 
 function getMongoQueryLogs() {
   return mongoQueryLog;
+}
+
+async function closeDB() {
+  const activeClient = client;
+  client = null;
+  db = null;
+  gridfsBucket = null;
+  serverInfo = null;
+  isReplicaSet = false;
+  if (activeClient) await activeClient.close();
 }
 
 async function connectDB() {
@@ -138,6 +157,10 @@ async function initializeIndexes() {
     await db.collection('audit_logs').createIndex({ logId: 1 }, { unique: true });
     await db.collection('audit_logs').createIndex({ evidenceId: 1, timestamp: 1 });
     await db.collection('audit_logs').createIndex({ investigationId: 1, timestamp: -1 });
+    await db.collection('audit_logs').createIndex(
+      { integrityFingerprint: 1 },
+      { unique: true, sparse: true, name: 'unique_integrity_violation_fingerprint' }
+    );
     await db.collection('chain_of_custody').createIndex({ evidenceId: 1, recordedAt: 1 });
 
     // 8. Detection Rules collection
@@ -152,6 +175,15 @@ async function initializeIndexes() {
     await db.collection('schema_experiments').createIndex({ experimentId: 1 }, { unique: true });
     await db.collection('schema_experiments').createIndex({ createdAt: -1 });
 
+    // 11. ML Detections collection (Isolation Forest Anomaly Findings)
+    await db.collection('ml_detections').createIndex({ detectionId: 1 }, { unique: true });
+    await db.collection('ml_detections').createIndex({ evidenceId: 1 });
+    await db.collection('ml_detections').createIndex({ investigationId: 1, anomalyScore: -1 });
+    await db.collection('ml_detections').createIndex({ caseId: 1, anomalyScore: -1 });
+    await db.collection('ml_detections').createIndex({ isAnomaly: 1, detectedAt: -1 });
+    await db.collection('ml_detections').createIndex({ threatLevel: 1, detectedAt: -1 });
+    await db.collection('ml_detections').createIndex({ detectedAt: -1 });
+
     // Schema benchmark collections indexes
     await db.collection('schema_bench_referenced_cases').createIndex({ caseId: 1 }, { unique: true });
     await db.collection('schema_bench_referenced_items').createIndex({ caseId: 1, timestamp: 1 });
@@ -159,7 +191,7 @@ async function initializeIndexes() {
     await db.collection('schema_bench_hybrid').createIndex({ caseId: 1, bucketIndex: 1 }, { unique: true });
 
     const t1 = performance.now();
-    logMongoOperation('createIndex', 'collections', { verifiedCollections: 11 }, t1 - t0, 15);
+    logMongoOperation('createIndex', 'collections', { verifiedCollections: 12 }, t1 - t0, 15);
     console.log('[MongoTrace DB] All required indexes verified on MongoDB.');
   } catch (err) {
     console.error('[MongoTrace DB] Error setting up indexes:', err.message);
@@ -202,5 +234,6 @@ module.exports = {
   getServerInfo,
   getDBEvents,
   logMongoOperation,
-  getMongoQueryLogs
+  getMongoQueryLogs,
+  closeDB
 };

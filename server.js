@@ -1,3 +1,4 @@
+if (typeof process.loadEnvFile === 'function') { try { process.loadEnvFile(); } catch (_) {} }
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -9,7 +10,8 @@ const {
   getServerInfo,
   getDBEvents,
   getMongoQueryLogs,
-  logMongoOperation
+  logMongoOperation,
+  closeDB
 } = require('./services/db');
 const {
   createEvidence,
@@ -49,6 +51,16 @@ const {
 } = require('./services/gridfsService');
 const { runSchemaBenchmark, getExperimentHistory } = require('./services/benchmarkService');
 const { seedCyberScenarios } = require('./data/seedScenarios');
+const {
+  checkMLHealth,
+  getMLModelInfo,
+  scoreEvidenceItem,
+  scoreEvidenceBatch,
+  recordMLDetection,
+  getMLDetections,
+  getMLStats,
+  evaluateInvestigationWithML
+} = require('./services/mlService');
 
 const app = express();
 const PORT = process.env.PORT || 5050;
@@ -58,8 +70,16 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 }
 });
 
-app.use(cors());
-app.use(express.json());
+const allowedOrigins = (process.env.CORS_ORIGIN || `http://localhost:${PORT}`)
+  .split(',').map(origin => origin.trim()).filter(Boolean);
+app.use(cors({
+  origin(origin, callback) {
+    // Browser requests without an Origin header (curl, local health probes) are safe.
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Origin is not allowed by CORS policy.'));
+  }
+}));
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '10mb' }));
 app.use((req, res, next) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   next();
@@ -190,30 +210,34 @@ app.get('/api/v1/evidence', async (req, res) => {
   try {
     const db = getDB();
     const { investigationId, caseId, severity, artifactType, evidenceType, search, limit = 50, skip = 0 } = req.query;
-    const query = {};
+    const andConditions = [];
 
     const targetInv = investigationId || caseId;
     if (targetInv && targetInv !== 'ALL') {
-      query.$or = [{ investigationId: targetInv }, { caseId: targetInv }];
+      andConditions.push({ $or: [{ investigationId: targetInv }, { caseId: targetInv }] });
     }
     if (severity && severity !== 'ALL') {
-      query.severity = severity;
+      andConditions.push({ severity });
     }
     const type = artifactType || evidenceType;
     if (type && type !== 'ALL') {
-      query.$or = [{ artifactType: type }, { evidenceType: type }];
+      andConditions.push({ $or: [{ artifactType: type }, { evidenceType: type }] });
     }
     if (search && search.trim()) {
-      const s = search.trim();
-      query.$or = [
-        { title: { $regex: s, $options: 'i' } },
-        { description: { $regex: s, $options: 'i' } },
-        { evidenceId: { $regex: s, $options: 'i' } },
-        { sourceHost: { $regex: s, $options: 'i' } },
-        { currentHash: { $regex: s, $options: 'i' } },
-        { 'entities.value': { $regex: s, $options: 'i' } }
-      ];
+      const s = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      andConditions.push({
+        $or: [
+          { title: { $regex: s, $options: 'i' } },
+          { description: { $regex: s, $options: 'i' } },
+          { evidenceId: { $regex: s, $options: 'i' } },
+          { sourceHost: { $regex: s, $options: 'i' } },
+          { currentHash: { $regex: s, $options: 'i' } },
+          { 'entities.value': { $regex: s, $options: 'i' } }
+        ]
+      });
     }
+
+    const query = andConditions.length > 0 ? { $and: andConditions } : {};
 
     const total = await db.collection('evidence').countDocuments(query);
     const items = await db.collection('evidence').find(query)
@@ -231,6 +255,11 @@ app.get('/api/v1/evidence', async (req, res) => {
 app.post('/api/v1/evidence', async (req, res) => {
   try {
     const created = await createEvidence(req.body, req.body.createdBy || 'Analyst');
+    if (created && (created.investigationId || created.caseId)) {
+      runDetectionEngine(created.investigationId || created.caseId).catch(err => {
+        console.warn('[Detection Engine] Trigger note:', err.message);
+      });
+    }
     res.status(201).json({ success: true, evidence: created });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -279,7 +308,7 @@ app.get('/api/v1/evidence/:id/audit', async (req, res) => {
 
 app.post('/api/v1/evidence/:id/verify', async (req, res) => {
   try {
-    const result = await verifyEvidenceHash(req.params.id);
+    const result = await verifyEvidenceHash(req.params.id, req.body?.actor || 'Integrity-Scanner');
     res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -307,7 +336,16 @@ app.post('/api/v1/ingestion/jobs', async (req, res) => {
     }
     const rawRecords = parseRawData(rawContent, format);
     const validation = await validateIngestionBatch(investigationId, rawRecords, fieldMapping);
-    const result = await executeIngestion(investigationId, validation.validRecords, sourceSystem, actor);
+    const result = await executeIngestion(investigationId, validation.validRecords, sourceSystem, actor, {
+      totalRecords: validation.total,
+      preRejectedCount: validation.invalidCount + validation.duplicateCount,
+      duplicateCount: validation.duplicateCount
+    });
+    try {
+      await runDetectionEngine(investigationId);
+    } catch (detErr) {
+      console.warn('[Detection Engine] Ingestion trigger note:', detErr.message);
+    }
     res.json({ success: true, job: result, validationSummary: { invalid: validation.invalidCount, duplicates: validation.duplicateCount } });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -319,6 +357,34 @@ app.get('/api/v1/ingestion/jobs', async (req, res) => {
     const db = getDB();
     const jobs = await db.collection('ingestion_jobs').find({}).sort({ createdAt: -1 }).limit(50).toArray();
     res.json({ success: true, jobs });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/v1/investigations/:id/reconstruct', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { severity, artifactType, startDate, endDate } = req.query;
+    const reconstruction = await reconstructIncident(id, {
+      investigationId: id,
+      caseId: id,
+      severity,
+      artifactType,
+      startDate,
+      endDate
+    });
+    res.json({ success: true, reconstruction });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/v1/audit-logs', async (req, res) => {
+  try {
+    const { investigationId } = req.query;
+    const logs = await getInvestigationAuditTrail(investigationId);
+    res.json({ success: true, logs });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -339,8 +405,22 @@ app.get('/api/v1/investigations/:id/timeline', async (req, res) => {
 
 app.get('/api/v1/investigations/:id/findings', async (req, res) => {
   try {
+    try {
+      await runDetectionEngine(req.params.id);
+    } catch (detErr) {
+      console.warn('[Detection Engine] Findings refresh note:', detErr.message);
+    }
     const findings = await getDerivedFindings(req.params.id);
     res.json({ success: true, findings });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/v1/investigations/:id/detection/run', async (req, res) => {
+  try {
+    const findings = await runDetectionEngine(req.params.id);
+    res.json({ success: true, count: findings.length, findings });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -389,8 +469,14 @@ app.get('/api/v1/relationships', async (req, res) => {
 // Schema Experiments
 app.post('/api/v1/experiments', async (req, res) => {
   try {
-    const itemCount = parseInt(req.body.itemCount || '1500', 10);
-    const iterations = parseInt(req.body.iterations || '10', 10);
+    const itemCount = parseInt(req.body.itemCount || '1000', 10);
+    const iterations = parseInt(req.body.iterations || '15', 10);
+    if (isNaN(itemCount) || itemCount < 100 || itemCount > 100000) {
+      return res.status(400).json({ success: false, error: 'itemCount must be an integer between 100 and 100,000' });
+    }
+    if (isNaN(iterations) || iterations < 1 || iterations > 100) {
+      return res.status(400).json({ success: false, error: 'iterations must be an integer between 1 and 100' });
+    }
     const benchmarkResult = await runSchemaBenchmark(itemCount, iterations);
     res.json({ success: true, experiment: benchmarkResult });
   } catch (err) {
@@ -410,7 +496,14 @@ app.get('/api/v1/experiments', async (req, res) => {
 // Integrity Scans
 app.post('/api/v1/integrity/verify-all', async (req, res) => {
   try {
-    const result = await verifyAllEvidence();
+    const result = await verifyAllEvidence(req.body?.actor || 'Integrity-Scanner');
+    if (!result.completed) {
+      return res.status(500).json({
+        success: false,
+        error: `Integrity scan completed with ${result.failedCount} persistence failure(s).`,
+        ...result
+      });
+    }
     res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -424,7 +517,7 @@ app.post('/api/v1/integrity/test-tamper', async (req, res) => {
     const result = await testTamperEvidence(evidenceId);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.message.includes('restricted to controlled') ? 403 : 500).json({ success: false, error: err.message });
   }
 });
 
@@ -629,14 +722,53 @@ app.delete('/api/gridfs/:fileId', async (req, res) => {
   }
 });
 
-app.post('/api/cases/reseed', async (req, res) => {
+function destructiveAdminAllowed(req) {
+  return process.env.ENABLE_DESTRUCTIVE_ADMIN === 'true' &&
+    req.get('X-MongoTrace-Confirm') === 'DELETE_DEMO_DATA';
+}
+
+function requireDestructiveAdmin(req, res, next) {
+  if (!destructiveAdminAllowed(req)) {
+    return res.status(403).json({
+      success: false,
+      error: 'Destructive administration is disabled. Set ENABLE_DESTRUCTIVE_ADMIN=true and send X-MongoTrace-Confirm: DELETE_DEMO_DATA.'
+    });
+  }
+  next();
+}
+
+app.post('/api/admin/clear', requireDestructiveAdmin, async (req, res) => {
   try {
     const db = getDB();
-    await db.collection('evidence').deleteMany({});
-    await db.collection('evidence_versions').deleteMany({});
-    await db.collection('chain_of_custody').deleteMany({});
-    await db.collection('evidence_relations').deleteMany({});
-    await db.collection('cases').deleteMany({});
+    const collectionsToPurge = [
+      'evidence', 'evidence_versions', 'chain_of_custody', 'evidence_relations',
+      'investigations', 'cases', 'entities', 'relationships', 'ml_detections',
+      'derived_findings', 'detection_rules', 'ingestion_jobs', 'audit_logs',
+      'schema_experiments', 'schema_bench_referenced_items', 'schema_bench_referenced_cases',
+      'schema_bench_hybrid', 'schema_bench_embedded', 'evidence_vault.files', 'evidence_vault.chunks'
+    ];
+    let totalDeleted = 0;
+    for (const col of collectionsToPurge) {
+      try {
+        const result = await db.collection(col).deleteMany({});
+        totalDeleted += result.deletedCount || 0;
+      } catch (e) {}
+    }
+    res.json({ success: true, message: `Successfully cleared ${totalDeleted} records across all collections.` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/cases/reseed', requireDestructiveAdmin, async (req, res) => {
+  try {
+    const db = getDB();
+    const collections = [
+      'evidence', 'evidence_versions', 'chain_of_custody', 'evidence_relations',
+      'investigations', 'cases', 'entities', 'relationships', 'ml_detections',
+      'derived_findings', 'detection_rules', 'ingestion_jobs', 'audit_logs'
+    ];
+    await Promise.all(collections.map(name => db.collection(name).deleteMany({})));
     await seedCyberScenarios(db);
     res.json({ success: true, message: 'All cases and evidence successfully reseeded' });
   } catch (err) {
@@ -684,8 +816,11 @@ app.get('/api/mongodb/collection/:name/documents', async (req, res) => {
   try {
     const db = getDB();
     const { name } = req.params;
-    const limit = Math.min(parseInt(req.query.limit || '20', 10), 100);
-    const skip = parseInt(req.query.skip || '0', 10);
+    const limit = Math.min(Math.max(parseInt(req.query.limit || '20', 10) || 20, 1), 100);
+    const skip = Math.max(parseInt(req.query.skip || '0', 10) || 0, 0);
+    if (!ALLOWED_QUERY_COLLECTIONS.has(name)) {
+      return res.status(403).json({ success: false, error: `Access to collection '${name}' is restricted for security.` });
+    }
     let filter = {};
     if (req.query.query && req.query.query.trim()) {
       try {
@@ -693,6 +828,9 @@ app.get('/api/mongodb/collection/:name/documents', async (req, res) => {
       } catch {
         return res.status(400).json({ success: false, error: 'Invalid JSON filter' });
       }
+    }
+    if (!isFilterSafe(filter)) {
+      return res.status(403).json({ success: false, error: 'Query contains a forbidden MongoDB operator.' });
     }
 
     const t0 = performance.now();
@@ -718,21 +856,82 @@ app.get('/api/mongodb/collection/:name/documents', async (req, res) => {
   }
 });
 
+const ALLOWED_QUERY_COLLECTIONS = new Set([
+  'investigations',
+  'cases',
+  'evidence',
+  'evidence_versions',
+  'entities',
+  'relationships',
+  'evidence_relations',
+  'ingestion_jobs',
+  'audit_logs',
+  'chain_of_custody',
+  'detection_rules',
+  'derived_findings',
+  'schema_experiments',
+  'evidence_vault.files',
+  'evidence_vault.chunks',
+  'ml_detections'
+]);
+
+const ALLOWED_AGGREGATE_STAGES = new Set([
+  '$match', '$project', '$sort', '$limit', '$skip', '$group', '$unwind',
+  '$addFields', '$set', '$count', '$facet'
+]);
+
+function isFilterSafe(obj) {
+  if (!obj || typeof obj !== 'object') return true;
+  for (const key of Object.keys(obj)) {
+    if (key === '$where' || key === '$function' || key === '$accumulator' || key.startsWith('$func')) return false;
+    if (typeof obj[key] === 'object' && !isFilterSafe(obj[key])) return false;
+  }
+  return true;
+}
+
 app.post('/api/mongodb/query', async (req, res) => {
   try {
     const db = getDB();
     const { collection: colName, filter = {}, pipeline, action = 'find', limit = 20 } = req.body;
     if (!colName) return res.status(400).json({ success: false, error: 'Collection name is required' });
 
+    if (!ALLOWED_QUERY_COLLECTIONS.has(colName)) {
+      return res.status(403).json({ success: false, error: `Access to collection '${colName}' is restricted for security.` });
+    }
+
+    if (action !== 'find' && action !== 'aggregate') {
+      return res.status(400).json({ success: false, error: `Action '${action}' is not permitted. Only 'find' and 'aggregate' read queries are supported.` });
+    }
+
     const t0 = performance.now();
     let results = [];
-    if (action === 'aggregate' && Array.isArray(pipeline)) {
+
+    if (action === 'aggregate') {
+      if (!Array.isArray(pipeline)) {
+        return res.status(400).json({ success: false, error: 'Pipeline must be an array of aggregation stages.' });
+      }
+
+      for (const stage of pipeline) {
+        if (typeof stage === 'object' && stage !== null) {
+          for (const key of Object.keys(stage)) {
+            if (!ALLOWED_AGGREGATE_STAGES.has(key) || !isFilterSafe(stage[key])) {
+              return res.status(403).json({ success: false, error: `Aggregation stage '${key}' is not permitted for the read-only inspector.` });
+            }
+          }
+        }
+      }
+
       results = await db.collection(colName).aggregate(pipeline).toArray();
       const t1 = performance.now();
       logMongoOperation('aggregate', colName, { pipelineCount: pipeline.length }, t1 - t0, results.length);
       return res.json({ success: true, count: results.length, durationMs: parseFloat((t1 - t0).toFixed(2)), results });
     } else {
-      results = await db.collection(colName).find(filter).limit(Math.min(limit, 100)).toArray();
+      if (!isFilterSafe(filter)) {
+        return res.status(403).json({ success: false, error: 'Query contains forbidden operator ($where is disabled for security).' });
+      }
+
+      const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+      results = await db.collection(colName).find(filter).limit(safeLimit).toArray();
       const t1 = performance.now();
       logMongoOperation('find', colName, filter, t1 - t0, results.length);
       return res.json({ success: true, count: results.length, durationMs: parseFloat((t1 - t0).toFixed(2)), results });
@@ -743,12 +942,120 @@ app.post('/api/mongodb/query', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// ROUTES: SCHEMA BENCHMARK EXPERIMENT ENGINE
+
+// -------------------------------------------------------------
+// ROUTES: MACHINE LEARNING FORENSICS INTELLIGENCE (ISOLATION FOREST)
+// -------------------------------------------------------------
+app.get('/api/v1/ml/status', async (req, res) => {
+  try {
+    const health = await checkMLHealth();
+    const info = await getMLModelInfo();
+    res.json({
+      success: true,
+      service: 'MongoTrace-ML-Engine',
+      health,
+      modelInfo: info
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/v1/ml/detections', async (req, res) => {
+  try {
+    const { investigationId, caseId, threatLevel, minScore, isAnomaly, limit = 50, skip = 0 } = req.query;
+    const result = await getMLDetections({
+      investigationId,
+      caseId,
+      threatLevel,
+      minScore,
+      isAnomaly,
+      limit,
+      skip
+    });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/v1/ml/stats', async (req, res) => {
+  try {
+    const { investigationId } = req.query;
+    const stats = await getMLStats(investigationId);
+    res.json({ success: true, stats });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/v1/ml/predict', async (req, res) => {
+  try {
+    const result = await scoreEvidenceItem(req.body);
+    if (req.body.evidenceId) {
+      recordMLDetection(result, req.body).catch(err => {
+        console.warn('[ML Predict] Persistence note:', err.message);
+      });
+    }
+    res.json({ success: true, prediction: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/v1/ml/predict-batch', async (req, res) => {
+  try {
+    const items = req.body.items || req.body;
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ success: false, error: 'Items array is required' });
+    }
+    const results = await scoreEvidenceBatch(items);
+    const anomaliesCount = results.filter(r => r.is_anomaly).length;
+
+    // Persist predictions for items that have evidenceId
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].evidenceId && results[i]) {
+        recordMLDetection(results[i], items[i]).catch(err => {
+          console.warn('[ML Predict Batch] Persistence note:', err.message);
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      total: results.length,
+      anomaliesDetected: anomaliesCount,
+      normalCount: results.length - anomaliesCount,
+      predictions: results
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/v1/ml/evaluate-case/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await evaluateInvestigationWithML(id);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// -------------------------------------------------------------
+// Schema Performance Benchmarking Harness
 // -------------------------------------------------------------
 app.post('/api/benchmark/run', async (req, res) => {
   try {
-    const itemCount = parseInt(req.body.itemCount || '1500', 10);
-    const iterations = parseInt(req.body.iterations || '10', 10);
+    const itemCount = parseInt(req.body.itemCount || '1000', 10);
+    const iterations = parseInt(req.body.iterations || '15', 10);
+    if (isNaN(itemCount) || itemCount < 100 || itemCount > 100000) {
+      return res.status(400).json({ success: false, error: 'itemCount must be an integer between 100 and 100,000' });
+    }
+    if (isNaN(iterations) || iterations < 1 || iterations > 100) {
+      return res.status(400).json({ success: false, error: 'iterations must be an integer between 1 and 100' });
+    }
     const benchmarkResult = await runSchemaBenchmark(itemCount, iterations);
     res.json({ success: true, benchmark: benchmarkResult });
   } catch (err) {
@@ -787,7 +1094,8 @@ app.get('/api/status', async (req, res) => {
 
 app.post('/api/seed', async (req, res) => {
   try {
-    await seedCyberScenarios();
+    const db = getDB();
+    await seedCyberScenarios(db);
     res.json({ success: true, message: 'Scenarios seeded successfully' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -835,15 +1143,28 @@ function setupChangeStreams(db) {
 async function startServer() {
   try {
     const { db } = await connectDB();
-    await seedCyberScenarios();
+    if (process.env.SEED_DEMO_DATA === 'true') {
+      await seedCyberScenarios(db);
+    } else {
+      console.log('[MongoTrace] Demo seeding is disabled. Set SEED_DEMO_DATA=true only for a disposable demonstration database.');
+    }
     setupChangeStreams(db);
 
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`=======================================================`);
       console.log(` MongoTrace Platform is active on: http://localhost:${PORT}`);
-      console.log(` Connected to MongoDB: mongodb://127.0.0.1:27017/mongotrace`);
+      console.log(` Connected to MongoDB database: ${db.databaseName}`);
       console.log(`=======================================================`);
     });
+    const shutdown = async (signal) => {
+      console.log(`[MongoTrace] Received ${signal}; shutting down gracefully.`);
+      server.close(async () => {
+        await closeDB();
+        process.exit(0);
+      });
+    };
+    process.once('SIGINT', () => shutdown('SIGINT'));
+    process.once('SIGTERM', () => shutdown('SIGTERM'));
   } catch (err) {
     console.error('Failed to start MongoTrace Server:', err);
     process.exit(1);

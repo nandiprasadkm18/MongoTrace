@@ -19,6 +19,8 @@ let appState = {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
+  document.body.className = 'light-theme';
+  try { localStorage.removeItem('mongotrace_theme'); } catch (_) {}
   initNavigation();
   initGraph();
   initModalsAndEvents();
@@ -91,7 +93,8 @@ async function switchTab(tabId) {
     'tab-ingestion': 'Evidence Ingestion',
     'tab-integrity': 'Integrity & Audit',
     'tab-experiments': 'Schema Experiments',
-    'tab-settings': 'MongoDB Database'
+    'tab-settings': 'MongoDB Database',
+    'tab-ml': 'ML Anomaly Detections'
   };
   if (breadcrumb) {
     breadcrumb.textContent = tabNames[tabId] || 'Workspace';
@@ -107,6 +110,7 @@ async function switchTab(tabId) {
   if (tabId === 'tab-integrity') await loadIntegrityView();
   if (tabId === 'tab-experiments') await loadExperimentsView();
   if (tabId === 'tab-settings') await loadDatabaseExplorer();
+  if (tabId === 'tab-ml') await loadMLView();
 }
 
 async function selectActiveInvestigation(invId) {
@@ -249,6 +253,77 @@ async function loadOverview() {
           `).join('');
         }
       }
+    }
+
+    // 4. Update Machine Learning Anomaly Detection KPIs & Feed
+    try {
+      const mlStatsRes = await fetch(`/api/v1/ml/stats?investigationId=${activeId}`);
+      const mlStatsData = await mlStatsRes.json();
+      if (mlStatsData.success && mlStatsData.stats) {
+        const s = mlStatsData.stats;
+        const elAnom = document.getElementById('mlKpiAnomalies');
+        const elNorm = document.getElementById('mlKpiNormal');
+        const elSusp = document.getElementById('mlKpiSuspicious');
+        const elAvg = document.getElementById('mlKpiAvgScore');
+
+        if (elAnom) elAnom.textContent = s.totalAnomalies;
+        if (elNorm) elNorm.textContent = s.normalEvents;
+        if (elSusp) elSusp.textContent = s.suspiciousEvents;
+        if (elAvg) elAvg.textContent = Number(s.avgAnomalyScore || 0).toFixed(3);
+      }
+
+      // Check ML engine status
+      const mlStatusRes = await fetch('/api/v1/ml/status');
+      const mlStatusData = await mlStatusRes.json();
+      const elStatus = document.getElementById('mlModelEngineStatus');
+      if (elStatus) {
+        if (mlStatusData.health && mlStatusData.health.available) {
+          elStatus.textContent = 'ENGINE ONLINE';
+          elStatus.className = 'badge-tag green font-mono';
+        } else {
+          elStatus.textContent = 'HEURISTIC FALLBACK';
+          elStatus.className = 'badge-tag amber font-mono';
+        }
+      }
+
+      // Populate Overview ML Detections Feed
+      const mlFeed = document.getElementById('overviewMLDetectionsList');
+      if (mlFeed) {
+        const mlDetRes = await fetch(`/api/v1/ml/detections?investigationId=${activeId}&limit=4`);
+        const mlDetData = await mlDetRes.json();
+        const detections = (mlDetData.success && mlDetData.detections) || [];
+
+        if (detections.length === 0) {
+          mlFeed.innerHTML = '<p class="placeholder-note">No anomaly detections recorded for this scope. Run an ML scan to evaluate telemetry.</p>';
+        } else {
+          mlFeed.innerHTML = detections.map(d => `
+            <div style="padding:8px 10px; background:var(--bg-subtle); border-radius:6px; margin-bottom:8px; border-left:3px solid ${d.isAnomaly ? 'var(--accent-rose)' : 'var(--mongo-green)'};">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; gap:6px; align-items:center;">
+                  <span class="font-mono text-emerald" style="font-weight:700; font-size:11px; cursor:pointer;" onclick="openEvidenceDrawer('${d.evidenceId}')">${escapeHtml(d.evidenceId)}</span>
+                  <span class="text-muted text-xs">• ${escapeHtml(d.sourceHost || '-')}</span>
+                </div>
+                <div style="display:flex; gap:4px; align-items:center;">
+                  <span class="badge-tag ${d.threatLevel.toLowerCase()}">${d.threatLevel}</span>
+                  <span class="badge-tag ${d.isAnomaly ? 'critical' : 'normal'}" style="font-family:var(--font-mono); font-size:10px;">Score: ${Number(d.anomalyScore).toFixed(3)}</span>
+                </div>
+              </div>
+              <p style="font-size:11px; color:var(--text-secondary); margin-top:4px; line-height:1.4;">${escapeHtml(d.explanation)}</p>
+              ${d.topContributingFeatures && d.topContributingFeatures.length > 0 ? `
+                <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:4px;">
+                  ${d.topContributingFeatures.slice(0, 2).map(f => `
+                    <span style="font-family:var(--font-mono); font-size:9px; background:var(--bg-surface); padding:2px 6px; border-radius:4px; border:1px solid var(--border-subtle); color:var(--text-tertiary);">
+                      ${escapeHtml(f.feature)}: ${f.raw_value !== undefined ? f.raw_value : ''} (${f.z_score !== undefined ? (f.z_score > 0 ? '+' : '') + f.z_score + 'σ' : ''})
+                    </span>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+          `).join('');
+        }
+      }
+    } catch (mlErr) {
+      console.warn('Overview ML load error:', mlErr);
     }
   } catch (err) {
     console.error('Error loading overview:', err);
@@ -421,7 +496,7 @@ async function loadEvidenceExplorer() {
     if (!tbody) return;
 
     if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No evidence records found in active scope.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No evidence records found in active scope.</td></tr>';
       return;
     }
 
@@ -432,6 +507,11 @@ async function loadEvidenceExplorer() {
         <td style="font-weight:600;">${escapeHtml(e.title)}</td>
         <td class="font-mono text-xs">${escapeHtml(e.sourceHost || '-')}</td>
         <td><span class="badge-tag ${e.severity.toLowerCase()}">${e.severity}</span></td>
+        <td>
+          <span class="badge-tag ${e.mlIsAnomaly ? 'critical' : 'normal'}" title="${escapeHtml(e.mlExplanation || 'Conforms to baseline')}">
+            ${e.mlAnomalyScore !== null && e.mlAnomalyScore !== undefined ? Number(e.mlAnomalyScore).toFixed(3) : '-'}
+          </span>
+        </td>
         <td class="font-mono">v${e.version}</td>
         <td class="font-mono text-muted text-xs" style="max-width:120px; overflow:hidden; text-overflow:ellipsis;">${e.currentHash ? e.currentHash.substring(0, 16) + '...' : '-'}</td>
         <td class="font-mono text-muted text-xs">${new Date(e.timestamp).toISOString()}</td>
@@ -464,6 +544,20 @@ window.openEvidenceDrawer = async function(evidenceId) {
         <span class="badge-tag ${doc.severity.toLowerCase()}">${doc.severity}</span>
         <span class="badge-tag blue font-mono">${doc.artifactType}</span>
         <span class="badge-tag green font-mono">${doc.integrityStatus || 'VERIFIED'}</span>
+      </div>
+
+      <div style="background:var(--bg-subtle); padding:10px; border-radius:6px; border:1px solid var(--border-subtle); margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="font-size:11px; font-weight:700; color:var(--text-secondary);">MACHINE LEARNING FORENSICS</span>
+          <span class="badge-tag ${doc.mlIsAnomaly ? 'critical' : 'normal'}">${doc.mlIsAnomaly ? 'ANOMALOUS' : 'BASELINE'}</span>
+        </div>
+        <div style="font-size:11px; margin-bottom:4px;">
+          <strong>Anomaly Score:</strong> <span class="font-mono" style="font-weight:700; color:${doc.mlAnomalyScore >= 0.5 ? 'var(--accent-rose)' : 'var(--text-primary)'};">${doc.mlAnomalyScore !== null && doc.mlAnomalyScore !== undefined ? Number(doc.mlAnomalyScore).toFixed(4) : 'N/A'}</span>
+          <span class="text-muted text-xs"> (Threat: ${doc.mlThreatLevel || 'LOW'})</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-secondary); line-height:1.4;">
+          ${escapeHtml(doc.mlExplanation || 'Conforms to baseline enterprise telemetry.')}
+        </div>
       </div>
 
       <div class="info-block mt-2">
@@ -595,6 +689,21 @@ function initGraph() {
     const isTable = tableBox.classList.toggle('hidden');
     graphBox.classList.toggle('hidden', !isTable);
   });
+
+  // Entity type filter buttons in graph toolbar
+  document.querySelectorAll('.graph-floating-bar .pill-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.graph-floating-bar .pill-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const etype = btn.getAttribute('data-etype') || 'ALL';
+      appState.selectedEntityType = etype;
+      if (appState.graph && typeof appState.graph.setEntityType === 'function') {
+        appState.graph.setEntityType(etype);
+      }
+      renderEntitiesTable(etype);
+    });
+  });
 }
 
 async function loadEntitiesView() {
@@ -602,10 +711,21 @@ async function loadEntitiesView() {
 
   // Load knowledge graph
   try {
-    const res = await fetch(`/api/cases/${activeInv}/reconstruct`);
+    let res = await fetch(`/api/v1/investigations/${activeInv}/reconstruct`);
+    if (!res.ok) {
+      res = await fetch(`/api/cases/${activeInv}/reconstruct`);
+    }
     const data = await res.json();
-    if (data.success && data.graph && appState.graph) {
-      appState.graph.render(data.graph);
+    const graphData = data.graph || (data.reconstruction && data.reconstruction.graph);
+    if (data.success && graphData && appState.graph) {
+      if (typeof appState.graph.setData === 'function') {
+        appState.graph.setData(graphData);
+        if (appState.selectedEntityType && typeof appState.graph.setEntityType === 'function') {
+          appState.graph.setEntityType(appState.selectedEntityType);
+        }
+      } else if (typeof appState.graph.render === 'function') {
+        appState.graph.render(graphData);
+      }
     }
   } catch (err) {
     console.warn('Graph load warning:', err);
@@ -615,26 +735,41 @@ async function loadEntitiesView() {
   try {
     const entRes = await fetch(`/api/v1/entities?investigationId=${activeInv}`);
     const entData = await entRes.json();
-    const tbody = document.getElementById('entitiesTableBody');
-    if (tbody && entData.success) {
-      const items = entData.entities || [];
-      if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No entities extracted in this investigation.</td></tr>';
-      } else {
-        tbody.innerHTML = items.map(ent => `
-          <tr>
-            <td><span class="badge-tag blue font-mono">${ent.entityType}</span></td>
-            <td class="font-mono text-emerald" style="font-weight:600;">${escapeHtml(ent.normalizedValue)}</td>
-            <td class="font-mono text-muted text-xs">${new Date(ent.createdAt).toISOString()}</td>
-            <td class="font-mono text-muted text-xs">${ent.lastSeen ? new Date(ent.lastSeen).toISOString() : '-'}</td>
-            <td class="font-mono">${(ent.evidenceIds || []).length} evidence items</td>
-          </tr>
-        `).join('');
-      }
+    if (entData.success) {
+      appState.allEntities = entData.entities || [];
+      renderEntitiesTable(appState.selectedEntityType || 'ALL');
     }
   } catch (err) {
     console.error('Error loading entities table:', err);
   }
+}
+
+function renderEntitiesTable(etype = 'ALL') {
+  const tbody = document.getElementById('entitiesTableBody');
+  if (!tbody) return;
+  const filterType = (etype || 'ALL').toUpperCase();
+  const allItems = appState.allEntities || [];
+
+  const items = allItems.filter(ent => {
+    if (filterType === 'ALL') return true;
+    if (filterType === 'FILE') return ent.entityType === 'FILE' || ent.entityType === 'HASH';
+    return ent.entityType === filterType;
+  });
+
+  if (items.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No ${filterType === 'ALL' ? '' : filterType + ' '}entities extracted in this investigation.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = items.map(ent => `
+    <tr>
+      <td><span class="badge-tag blue font-mono">${ent.entityType}</span></td>
+      <td class="font-mono text-emerald" style="font-weight:600;">${escapeHtml(ent.normalizedValue || ent.value)}</td>
+      <td class="font-mono text-muted text-xs">${ent.createdAt ? new Date(ent.createdAt).toISOString() : '-'}</td>
+      <td class="font-mono text-muted text-xs">${ent.lastSeen ? new Date(ent.lastSeen).toISOString() : '-'}</td>
+      <td class="font-mono">${(ent.evidenceIds || []).length} evidence items</td>
+    </tr>
+  `).join('');
 }
 
 // ==============================================================
@@ -744,8 +879,8 @@ document.getElementById('btnConfirmIngest')?.addEventListener('click', async () 
     reportBox.classList.remove('hidden');
 
     document.getElementById('reportJobId').textContent = job.jobId;
-    document.getElementById('reportAccepted').textContent = `${job.accepted} records`;
-    document.getElementById('reportRejected').textContent = `${job.rejected} records`;
+    document.getElementById('reportAccepted').textContent = `${job.acceptedCount} records`;
+    document.getElementById('reportRejected').textContent = `${job.rejectedCount} records`;
     document.getElementById('reportDuration').textContent = `${job.durationMs}ms`;
 
     await loadIngestionView();
@@ -785,13 +920,16 @@ document.getElementById('btnLoadSamplePayload')?.addEventListener('click', () =>
 // ==============================================================
 async function loadIntegrityView() {
   try {
-    const res = await fetch('/api/v1/investigations/INV-2026-0881/audit');
+    const activeInv = appState.currentInvestigationId || '';
+    const url = activeInv ? `/api/v1/investigations/${activeInv}/audit` : '/api/v1/audit-logs';
+    const res = await fetch(url);
     const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || 'Unable to load audit records');
     const tbody = document.getElementById('auditLogsTableBody');
-    if (tbody && data.success) {
+    if (tbody) {
       const logs = data.logs || [];
       if (logs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No audit trail records logged yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No audit trail records logged yet.</td></tr>';
       } else {
         tbody.innerHTML = logs.map(l => `
           <tr>
@@ -800,15 +938,20 @@ async function loadIntegrityView() {
             <td><strong style="color:var(--mongo-green);">${escapeHtml(l.action)}</strong></td>
             <td>${escapeHtml(l.actor)}</td>
             <td class="font-mono text-muted text-xs">${new Date(l.timestamp).toISOString()}</td>
-            <td class="font-mono text-xs text-muted" style="max-width:100px; overflow:hidden; text-overflow:ellipsis;">${l.previousHash || '-'}</td>
-            <td class="font-mono text-xs text-muted" style="max-width:100px; overflow:hidden; text-overflow:ellipsis;">${l.resultingHash || '-'}</td>
-            <td class="text-secondary text-xs">${escapeHtml(l.reason || JSON.stringify(l.details || l.changes || {}))}</td>
+            <td class="font-mono text-xs text-muted" style="max-width:100px; overflow:hidden; text-overflow:ellipsis;">${l.previousHash || l.expectedHash || '-'}</td>
+            <td class="font-mono text-xs text-muted" style="max-width:100px; overflow:hidden; text-overflow:ellipsis;">${l.resultingHash || l.calculatedHash || '-'}</td>
+            <td class="font-mono text-xs ${l.verificationResult === 'VERIFIED' ? 'text-emerald' : (l.verificationResult ? 'text-rose' : 'text-muted')}">${escapeHtml(l.verificationResult || '-')}</td>
+            <td class="text-secondary text-xs">${escapeHtml(l.reason || (l.verificationResult ? `expected=${l.expectedHash || 'MISSING'}; calculated=${l.calculatedHash || '-'}${l.detectionCount ? `; detections=${l.detectionCount}` : ''}` : JSON.stringify(l.details || l.changes || {})))}</td>
           </tr>
         `).join('');
       }
     }
   } catch (err) {
     console.error('Error loading integrity view:', err);
+    const tbody = document.getElementById('auditLogsTableBody');
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center text-rose">Unable to load audit records: ${escapeHtml(err.message)}</td></tr>`;
+    }
   }
 }
 
@@ -823,14 +966,19 @@ document.getElementById('btnRunFullIntegrityScan')?.addEventListener('click', as
     btn.disabled = false;
     btn.textContent = 'Run Full Integrity Scan';
 
-    if (!data.success) throw new Error(data.error);
-
     document.getElementById('auditTotalDocs').textContent = data.totalChecked;
     document.getElementById('auditVerifiedCount').textContent = data.verifiedCount;
     document.getElementById('auditViolationsCount').textContent = data.tamperedCount;
 
     const banner = document.getElementById('integrityStatusBanner');
-    if (data.tamperedCount > 0) {
+    if (!res.ok || !data.success || data.failedCount > 0) {
+      banner.classList.add('tampered');
+      document.getElementById('shieldStatusBadge').textContent = '!';
+      document.getElementById('integrityVerdictHeading').textContent = 'Integrity Scan Incomplete';
+      document.getElementById('integrityVerdictSub').textContent = data.error || `${data.failedCount} verification result(s) could not be persisted.`;
+      await loadIntegrityView();
+      throw new Error(data.error || 'Integrity scan persistence failed');
+    } else if (data.tamperedCount > 0) {
       banner.classList.add('tampered');
       document.getElementById('shieldStatusBadge').textContent = '⚠';
       document.getElementById('integrityVerdictHeading').textContent = 'Integrity Violation Detected!';
@@ -841,6 +989,7 @@ document.getElementById('btnRunFullIntegrityScan')?.addEventListener('click', as
       document.getElementById('integrityVerdictHeading').textContent = 'System Evidence Integrity Verified';
       document.getElementById('integrityVerdictSub').textContent = 'All cryptographic SHA-256 hashes match stored genesis payloads in MongoDB.';
     }
+    await loadIntegrityView();
   } catch (err) {
     alert('Integrity scan error: ' + err.message);
   }
@@ -877,17 +1026,54 @@ async function loadExperimentsView() {
       } else {
         tbody.innerHTML = history.map(exp => {
           const res = exp.results || {};
-          const recon = (res.queryLatencies && res.queryLatencies.fullReconstruction) || {};
+          // Support both queryLatency (standard) and legacy queryLatencies
+          const ql = res.queryLatency || res.queryLatencies || {};
+          const recon = ql.fullReconstruction || {};
+          const accuracy = res.retrievalAccuracy || {};
+
+          // Embedded latency & status
+          const embLimited = accuracy.embedded?.limitationTriggered || (res.ingestion?.embedded?.error != null);
+          let embDisplay = '-';
+          if (embLimited) {
+            embDisplay = '<span class="text-danger" style="font-weight:600;" title="16MB BSON barrier triggered">N/A (16MB)</span>';
+          } else if (recon.embedded && typeof recon.embedded.p50 === 'number') {
+            embDisplay = `${Number(recon.embedded.p50).toFixed(2)}ms`;
+          }
+
+          // Referenced latency
+          let refDisplay = '-';
+          if (recon.referenced && typeof recon.referenced.p50 === 'number') {
+            refDisplay = `${Number(recon.referenced.p50).toFixed(2)}ms`;
+          }
+
+          // Hybrid latency
+          let hybDisplay = '-';
+          if (recon.hybrid && typeof recon.hybrid.p50 === 'number') {
+            hybDisplay = `<span class="text-emerald" style="font-weight:700;">${Number(recon.hybrid.p50).toFixed(2)}ms</span>`;
+          }
+
+          // Dynamic Accuracy Summary
+          let accDisplay = '100%';
+          if (embLimited) {
+            accDisplay = '<span class="text-amber" title="Referenced/Hybrid: 100%, Embedded: Exceeded 16MB">Partial (Ref/Hyb 100%)</span>';
+          } else if (accuracy.referenced?.accuracyPct != null) {
+            accDisplay = `<span class="text-emerald">${accuracy.referenced.accuracyPct}%</span>`;
+          }
+
+          const itemCount = exp.itemCount || res.metadata?.sampleSize || 1000;
+          const iterations = exp.iterations || res.metadata?.iterations || 15;
+          const expDate = exp.createdAt ? new Date(exp.createdAt).toISOString().replace('T', ' ').substring(0, 19) : '-';
+
           return `
             <tr>
-              <td class="font-mono text-emerald">${escapeHtml(exp.experimentId)}</td>
-              <td class="font-mono">${exp.itemCount}</td>
-              <td class="font-mono">${exp.iterations}</td>
-              <td class="font-mono">${(recon.embedded && recon.embedded.p50) || '-'}ms</td>
-              <td class="font-mono">${(recon.referenced && recon.referenced.p50) || '-'}ms</td>
-              <td class="font-mono text-emerald" style="font-weight:700;">${(recon.hybrid && recon.hybrid.p50) || '-'}ms</td>
-              <td class="font-mono text-emerald">100%</td>
-              <td class="font-mono text-muted text-xs">${new Date(exp.createdAt).toISOString()}</td>
+              <td class="font-mono text-emerald" style="font-weight:600;">${escapeHtml(exp.experimentId || '-')}</td>
+              <td class="font-mono">${Number(itemCount).toLocaleString()}</td>
+              <td class="font-mono">${iterations}</td>
+              <td class="font-mono">${embDisplay}</td>
+              <td class="font-mono">${refDisplay}</td>
+              <td class="font-mono">${hybDisplay}</td>
+              <td class="font-mono">${accDisplay}</td>
+              <td class="font-mono text-muted text-xs">${expDate}</td>
             </tr>
           `;
         }).join('');
@@ -916,24 +1102,26 @@ document.getElementById('btnRunBenchmark')?.addEventListener('click', async () =
     if (!data.success) throw new Error(data.error);
 
     const b = data.experiment;
+    const ql = b.queryLatency || b.queryLatencies || {};
+    const embLimited = b.retrievalAccuracy?.embedded?.limitationTriggered || (b.ingestion?.embedded?.error != null);
 
-    // Update Model Cards
+    // Update Model Cards with bounds checking
     document.getElementById('embStorageSize').textContent = `${Math.round((b.storage?.embedded?.storageSize || 0) / 1024)} KB`;
     document.getElementById('embIndexSize').textContent = `${Math.round((b.storage?.embedded?.totalIndexSize || 0) / 1024)} KB`;
-    document.getElementById('embReconLat').textContent = `${b.queryLatency?.fullReconstruction?.embedded?.p50 || 0}ms`;
-    document.getElementById('embUpdateLat').textContent = `${b.queryLatency?.singleItemUpdate?.embedded?.p50 || 0}ms`;
-    document.getElementById('embAccuracy').textContent = `${b.retrievalAccuracy?.embedded?.accuracyPct || 100}%`;
+    document.getElementById('embReconLat').textContent = embLimited ? 'N/A (16MB)' : (ql.fullReconstruction?.embedded?.p50 != null ? `${Number(ql.fullReconstruction.embedded.p50).toFixed(2)}ms` : '-');
+    document.getElementById('embUpdateLat').textContent = embLimited ? 'N/A (16MB)' : (ql.singleItemUpdate?.embedded?.p50 != null ? `${Number(ql.singleItemUpdate.embedded.p50).toFixed(2)}ms` : '-');
+    document.getElementById('embAccuracy').textContent = embLimited ? '0% (Exceeded)' : `${b.retrievalAccuracy?.embedded?.accuracyPct || 100}%`;
 
     document.getElementById('refStorageSize').textContent = `${Math.round((b.storage?.referenced?.storageSize || 0) / 1024)} KB`;
     document.getElementById('refIndexSize').textContent = `${Math.round((b.storage?.referenced?.totalIndexSize || 0) / 1024)} KB`;
-    document.getElementById('refReconLat').textContent = `${b.queryLatency?.fullReconstruction?.referenced?.p50 || 0}ms`;
-    document.getElementById('refUpdateLat').textContent = `${b.queryLatency?.singleItemUpdate?.referenced?.p50 || 0}ms`;
+    document.getElementById('refReconLat').textContent = ql.fullReconstruction?.referenced?.p50 != null ? `${Number(ql.fullReconstruction.referenced.p50).toFixed(2)}ms` : '-';
+    document.getElementById('refUpdateLat').textContent = ql.singleItemUpdate?.referenced?.p50 != null ? `${Number(ql.singleItemUpdate.referenced.p50).toFixed(2)}ms` : '-';
     document.getElementById('refAccuracy').textContent = `${b.retrievalAccuracy?.referenced?.accuracyPct || 100}%`;
 
     document.getElementById('hybStorageSize').textContent = `${Math.round((b.storage?.hybrid?.storageSize || 0) / 1024)} KB`;
     document.getElementById('hybIndexSize').textContent = `${Math.round((b.storage?.hybrid?.totalIndexSize || 0) / 1024)} KB`;
-    document.getElementById('hybReconLat').textContent = `${b.queryLatency?.fullReconstruction?.hybrid?.p50 || 0}ms`;
-    document.getElementById('hybUpdateLat').textContent = `${b.queryLatency?.singleItemUpdate?.hybrid?.p50 || 0}ms`;
+    document.getElementById('hybReconLat').textContent = ql.fullReconstruction?.hybrid?.p50 != null ? `${Number(ql.fullReconstruction.hybrid.p50).toFixed(2)}ms` : '-';
+    document.getElementById('hybUpdateLat').textContent = ql.singleItemUpdate?.hybrid?.p50 != null ? `${Number(ql.singleItemUpdate.hybrid.p50).toFixed(2)}ms` : '-';
     document.getElementById('hybAccuracy').textContent = `${b.retrievalAccuracy?.hybrid?.accuracyPct || 100}%`;
 
     // Render Charts
@@ -952,29 +1140,45 @@ document.getElementById('btnRunBenchmark')?.addEventListener('click', async () =
 
 function populateLatencyMatrix(b) {
   const tbody = document.getElementById('benchMatrixTableBody');
-  if (!tbody || !b.queryLatency) return;
+  const ql = b.queryLatency || b.queryLatencies;
+  if (!tbody || !ql) return;
+
+  const embLimited = b.retrievalAccuracy?.embedded?.limitationTriggered || (b.ingestion?.embedded?.error != null);
 
   const rows = [
-    { op: 'Full Incident Reconstruction', model: 'Embedded Document', data: b.queryLatency.fullReconstruction?.embedded, acc: b.retrievalAccuracy?.embedded?.accuracyPct },
-    { op: 'Full Incident Reconstruction', model: 'Referenced / Normalized', data: b.queryLatency.fullReconstruction?.referenced, acc: b.retrievalAccuracy?.referenced?.accuracyPct },
-    { op: 'Full Incident Reconstruction', model: 'Hybrid Time-Bucket', data: b.queryLatency.fullReconstruction?.hybrid, acc: b.retrievalAccuracy?.hybrid?.accuracyPct },
-    { op: 'Single Evidence Update', model: 'Embedded Document', data: b.queryLatency.singleItemUpdate?.embedded, acc: '100%' },
-    { op: 'Single Evidence Update', model: 'Referenced / Normalized', data: b.queryLatency.singleItemUpdate?.referenced, acc: '100%' },
-    { op: 'Single Evidence Update', model: 'Hybrid Time-Bucket', data: b.queryLatency.singleItemUpdate?.hybrid, acc: '100%' }
+    { op: 'Full Incident Reconstruction', model: 'Embedded Document', data: ql.fullReconstruction?.embedded, acc: embLimited ? '0%' : `${b.retrievalAccuracy?.embedded?.accuracyPct || 100}%`, limited: embLimited },
+    { op: 'Full Incident Reconstruction', model: 'Referenced / Normalized', data: ql.fullReconstruction?.referenced, acc: `${b.retrievalAccuracy?.referenced?.accuracyPct || 100}%` },
+    { op: 'Full Incident Reconstruction', model: 'Hybrid Time-Bucket', data: ql.fullReconstruction?.hybrid, acc: `${b.retrievalAccuracy?.hybrid?.accuracyPct || 100}%` },
+    { op: 'Time-Window Temporal Filter', model: 'Embedded Document', data: ql.timeWindowRange?.embedded, acc: embLimited ? '0%' : '100%', limited: embLimited },
+    { op: 'Time-Window Temporal Filter', model: 'Referenced / Normalized', data: ql.timeWindowRange?.referenced, acc: '100%' },
+    { op: 'Time-Window Temporal Filter', model: 'Hybrid Time-Bucket', data: ql.timeWindowRange?.hybrid, acc: '100%' },
+    { op: 'Single Evidence Update', model: 'Embedded Document', data: ql.singleItemUpdate?.embedded, acc: embLimited ? '0%' : '100%', limited: embLimited },
+    { op: 'Single Evidence Update', model: 'Referenced / Normalized', data: ql.singleItemUpdate?.referenced, acc: '100%' },
+    { op: 'Single Evidence Update', model: 'Hybrid Time-Bucket', data: ql.singleItemUpdate?.hybrid, acc: '100%' }
   ];
 
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td><strong>${r.op}</strong></td>
-      <td class="font-mono text-xs">${r.model}</td>
-      <td class="font-mono">${r.data?.min || 0}ms</td>
-      <td class="font-mono" style="font-weight:700;">${r.data?.p50 || 0}ms</td>
-      <td class="font-mono">${r.data?.p95 || 0}ms</td>
-      <td class="font-mono">${r.data?.p99 || 0}ms</td>
-      <td class="font-mono">${r.data?.max || 0}ms</td>
-      <td class="font-mono text-emerald">${r.acc || '100%'}</td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = rows.map(r => {
+    const isNA = r.limited || !r.data;
+    const minVal = isNA ? 'N/A' : `${Number(r.data.min).toFixed(2)}ms`;
+    const p50Val = isNA ? '<span class="text-danger">N/A (16MB)</span>' : `${Number(r.data.p50).toFixed(2)}ms`;
+    const p95Val = isNA ? 'N/A' : `${Number(r.data.p95).toFixed(2)}ms`;
+    const p99Val = isNA ? 'N/A' : `${Number(r.data.p99).toFixed(2)}ms`;
+    const maxVal = isNA ? 'N/A' : `${Number(r.data.max).toFixed(2)}ms`;
+    const accClass = r.limited ? 'text-danger' : 'text-emerald';
+
+    return `
+      <tr>
+        <td><strong>${r.op}</strong></td>
+        <td class="font-mono text-xs">${r.model}</td>
+        <td class="font-mono">${minVal}</td>
+        <td class="font-mono" style="font-weight:700;">${p50Val}</td>
+        <td class="font-mono">${p95Val}</td>
+        <td class="font-mono">${p99Val}</td>
+        <td class="font-mono">${maxVal}</td>
+        <td class="font-mono ${accClass}">${r.acc}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
 // ==============================================================
@@ -1129,6 +1333,11 @@ async function executeCustomMQL() {
 // MODALS & EVENT HANDLERS
 // ==============================================================
 function initModalsAndEvents() {
+  // ML scan triggers
+  document.getElementById('btnOverviewRunML')?.addEventListener('click', () => triggerMLScan());
+  document.getElementById('btnWorkbenchRunML')?.addEventListener('click', () => triggerMLScan());
+  document.getElementById('mlThreatFilter')?.addEventListener('change', () => loadMLView());
+  document.getElementById('mlMinScoreFilter')?.addEventListener('change', () => loadMLView());
   // Modal: Create Investigation
   document.getElementById('btnNewInvestigation')?.addEventListener('click', () => {
     document.getElementById('modalCreateInvestigation')?.classList.remove('hidden');
@@ -1343,7 +1552,10 @@ function initModalsAndEvents() {
   document.getElementById('btnReseed')?.addEventListener('click', async () => {
     if (!confirm('Reset and re-seed sample digital forensic telemetry in MongoDB?')) return;
     try {
-      const res = await fetch('/api/cases/reseed', { method: 'POST' });
+      const res = await fetch('/api/cases/reseed', {
+        method: 'POST',
+        headers: { 'X-MongoTrace-Confirm': 'DELETE_DEMO_DATA' }
+      });
       const data = await res.json();
       if (data.success) {
         alert('Database telemetry reseeded successfully!');
@@ -1433,4 +1645,127 @@ function initSSE() {
 function escapeHtml(str) {
   if (typeof str !== 'string') return str;
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+
+// ==============================================================
+// SECTION 10: MACHINE LEARNING ANOMALY FORENSICS WORKBENCH
+// ==============================================================
+async function triggerMLScan(invId) {
+  const targetId = invId || appState.currentInvestigationId;
+  if (!targetId) {
+    alert('Please select an active investigation to run ML anomaly scanning.');
+    return;
+  }
+
+  const btn = document.getElementById('btnOverviewRunML');
+  const btn2 = document.getElementById('btnWorkbenchRunML');
+  const orig1 = btn ? btn.textContent : '';
+  const orig2 = btn2 ? btn2.textContent : '';
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Scoring Telemetry...'; }
+  if (btn2) { btn2.disabled = true; btn2.textContent = '⏳ Scoring Telemetry...'; }
+
+  try {
+    const res = await fetch(`/api/v1/ml/evaluate-case/${targetId}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      alert(`ML Forensics Isolation Forest Scan Complete!\nScope: ${targetId}\nEvaluated Events: ${data.evaluatedCount}\nAnomalies Found: ${data.anomaliesFound}`);
+      if (appState.activeTab === 'tab-overview') await loadOverview();
+      else if (appState.activeTab === 'tab-ml') await loadMLView();
+      else if (appState.activeTab === 'tab-evidence') await loadEvidenceExplorer();
+    } else {
+      alert(`ML Scan Failed: ${data.error || 'Unknown evaluation error'}`);
+    }
+  } catch (err) {
+    alert(`Could not connect to ML service: ${err.message}`);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig1 || '⚡ Run Anomaly Scan'; }
+    if (btn2) { btn2.disabled = false; btn2.textContent = orig2 || '⚡ Run Anomaly Scan on Active Scope'; }
+  }
+}
+
+async function loadMLView() {
+  const activeId = appState.currentInvestigationId;
+  const threat = document.getElementById('mlThreatFilter')?.value || 'ALL';
+  const minScore = document.getElementById('mlMinScoreFilter')?.value || '';
+
+  try {
+    // 1. Stats
+    const statsRes = await fetch(`/api/v1/ml/stats?investigationId=${activeId || 'ALL'}`);
+    const statsData = await statsRes.json();
+    if (statsData.success && statsData.stats) {
+      const s = statsData.stats;
+      const elScored = document.getElementById('mlTabTotalScored');
+      const elAnom = document.getElementById('mlTabTotalAnomalies');
+      const elNorm = document.getElementById('mlTabNormalEvents');
+      const elSusp = document.getElementById('mlTabSuspiciousEvents');
+
+      if (elScored) elScored.textContent = s.totalScored;
+      if (elAnom) elAnom.textContent = s.totalAnomalies;
+      if (elNorm) elNorm.textContent = s.normalEvents;
+      if (elSusp) elSusp.textContent = s.suspiciousEvents;
+    }
+
+    // 2. Detections query
+    const params = new URLSearchParams();
+    if (activeId) params.append('investigationId', activeId);
+    if (threat !== 'ALL') params.append('threatLevel', threat);
+    if (minScore) params.append('minScore', minScore);
+    params.append('limit', '50');
+
+    const detRes = await fetch(`/api/v1/ml/detections?${params.toString()}`);
+    const detData = await detRes.json();
+    if (!detData.success) return;
+
+    const list = detData.detections || [];
+    const countLabel = document.getElementById('mlDetectionsCountLabel');
+    if (countLabel) countLabel.textContent = `${detData.total || list.length} detections`;
+
+    const tbody = document.getElementById('mlDetectionsTableBody');
+    if (!tbody) return;
+
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No ML detections match the selected criteria in active scope. Click "Run Anomaly Scan" above to evaluate telemetry.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.map(d => `
+      <tr>
+        <td class="font-mono text-xs">${escapeHtml(d.detectionId)}</td>
+        <td>
+          <a href="#" class="font-mono text-emerald" style="font-weight:600; text-decoration:none;" onclick="openEvidenceDrawer('${d.evidenceId}'); return false;">${escapeHtml(d.evidenceId)}</a>
+        </td>
+        <td>
+          <div style="font-weight:600; font-size:12px; color:var(--text-primary);">${escapeHtml(d.title)}</div>
+          <div class="font-mono text-muted text-xs">${escapeHtml(d.artifactType)}</div>
+        </td>
+        <td class="font-mono text-xs">${escapeHtml(d.sourceHost || '-')}</td>
+        <td>
+          <span class="badge-tag ${d.isAnomaly ? 'critical' : 'normal'}" style="font-family:var(--font-mono); font-size:11px; font-weight:700;">
+            ${Number(d.anomalyScore).toFixed(4)}
+          </span>
+        </td>
+        <td><span class="badge-tag ${d.threatLevel.toLowerCase()}">${d.threatLevel}</span></td>
+        <td class="font-mono text-muted text-xs">${d.detectedAt ? new Date(d.detectedAt).toISOString().replace('T', ' ').substring(0, 19) : '-'}</td>
+        <td style="max-width:320px;">
+          <div style="font-size:11px; color:var(--text-secondary); line-height:1.4;">${escapeHtml(d.explanation)}</div>
+          ${d.topContributingFeatures && d.topContributingFeatures.length > 0 ? `
+            <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:4px;">
+              ${d.topContributingFeatures.slice(0, 3).map(f => `
+                <span style="font-family:var(--font-mono); font-size:9px; background:var(--bg-subtle); padding:1px 5px; border-radius:3px; border:1px solid var(--border-subtle); color:var(--text-secondary);">
+                  ${escapeHtml(f.feature)}: ${f.raw_value !== undefined ? f.raw_value : ''} (${f.z_score !== undefined ? (f.z_score > 0 ? '+' : '') + f.z_score + 'σ' : ''})
+                </span>
+              `).join('')}
+            </div>
+          ` : ''}
+        </td>
+        <td>
+          <button class="btn btn-xs btn-outline" onclick="openEvidenceDrawer('${d.evidenceId}')">Inspect</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    console.error('Error loading ML view:', err);
+  }
 }

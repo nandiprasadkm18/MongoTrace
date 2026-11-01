@@ -198,10 +198,13 @@ async function addInvestigationNote(id, noteText, author = 'Analyst') {
   return note;
 }
 
-async function getInvestigationAuditTrail(id) {
+async function getInvestigationAuditTrail(id = null) {
   const db = getDB();
+  const query = (id && id !== 'ALL')
+    ? { $or: [{ investigationId: id }, { caseId: id }] }
+    : {};
   const logs = await db.collection('audit_logs')
-    .find({ $or: [{ investigationId: id }, { caseId: id }] })
+    .find(query)
     .sort({ timestamp: -1 })
     .limit(100)
     .toArray();

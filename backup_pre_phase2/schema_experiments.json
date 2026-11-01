@@ -1,0 +1,73 @@
+[
+  {
+    "_id": "6ae57fea03a3f1f24cf2b074",
+    "experimentId": "EXP-BASELINE-001",
+    "createdAt": "2026-10-13T10:00:00.000Z",
+    "itemCount": 1500,
+    "iterations": 15,
+    "results": {
+      "storageFootprint": {
+        "embedded": {
+          "dataSizeKB": 720.4,
+          "storageSizeKB": 744,
+          "indexSizeKB": 32
+        },
+        "referenced": {
+          "dataSizeKB": 1480.2,
+          "storageSizeKB": 1520,
+          "indexSizeKB": 256
+        },
+        "hybrid": {
+          "dataSizeKB": 890.6,
+          "storageSizeKB": 920,
+          "indexSizeKB": 48
+        }
+      },
+      "queryLatencies": {
+        "fullReconstruction": {
+          "embedded": {
+            "p50": 1.84,
+            "p95": 3.12
+          },
+          "referenced": {
+            "p50": 8.42,
+            "p95": 14.2
+          },
+          "hybrid": {
+            "p50": 3.25,
+            "p95": 5.8
+          }
+        },
+        "singleItemUpdate": {
+          "embedded": {
+            "p50": 4.8,
+            "p95": 9.4
+          },
+          "referenced": {
+            "p50": 1.15,
+            "p95": 2.1
+          },
+          "hybrid": {
+            "p50": 2.3,
+            "p95": 3.9
+          }
+        }
+      },
+      "retrievalAccuracy": {
+        "expectedCount": 1500,
+        "embedded": {
+          "accuracyPct": 100,
+          "limitationTriggered": false
+        },
+        "referenced": {
+          "accuracyPct": 100,
+          "limitationTriggered": false
+        },
+        "hybrid": {
+          "accuracyPct": 100,
+          "limitationTriggered": false
+        }
+      }
+    }
+  }
+]

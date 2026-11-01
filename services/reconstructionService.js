@@ -6,7 +6,10 @@ const { getDB, logMongoOperation } = require('./db');
 async function reconstructIncident(caseId, options = {}) {
   const db = getDB();
 
-  const matchFilter = { caseId };
+  const targetId = options.investigationId || options.caseId || caseId;
+  const matchFilter = {
+    $or: [{ caseId: targetId }, { investigationId: targetId }]
+  };
   if (options.severity) matchFilter.severity = options.severity;
   if (options.artifactType) matchFilter.artifactType = options.artifactType;
   if (options.startDate || options.endDate) {
@@ -78,7 +81,9 @@ async function reconstructIncident(caseId, options = {}) {
   logMongoOperation('aggregate ($facet)', 'evidence', aggregationPipeline, t1 - t0, events.length);
 
   const tRel0 = performance.now();
-  const relations = await db.collection('evidence_relations').find({ caseId }).toArray();
+  const relations = await db.collection('evidence_relations').find({
+    $or: [{ caseId: targetId }, { investigationId: targetId }]
+  }).toArray();
   const tRel1 = performance.now();
   logMongoOperation('find', 'evidence_relations', { caseId }, tRel1 - tRel0, relations.length);
 
@@ -148,7 +153,8 @@ async function reconstructIncident(caseId, options = {}) {
   };
 
   return {
-    caseId,
+    investigationId: targetId,
+    caseId: targetId,
     timeline: events,
     graph: { nodes, edges },
     metrics: {
@@ -172,9 +178,10 @@ async function reconstructIncident(caseId, options = {}) {
  */
 async function traceCausalityChain(caseId, startEvidenceId, maxDepth = 10) {
   const db = getDB();
+  const idFilter = { $or: [{ caseId }, { investigationId: caseId }] };
 
   const pipeline = [
-    { $match: { caseId, sourceEvidenceId: startEvidenceId } },
+    { $match: { ...idFilter, sourceEvidenceId: startEvidenceId } },
     {
       $graphLookup: {
         from: 'evidence_relations',
@@ -183,7 +190,8 @@ async function traceCausalityChain(caseId, startEvidenceId, maxDepth = 10) {
         connectToField: 'sourceEvidenceId',
         as: 'downstreamCausalChain',
         maxDepth: maxDepth - 1,
-        depthField: 'hopDistance'
+        depthField: 'hopDistance',
+        restrictSearchWithMatch: idFilter
       }
     }
   ];

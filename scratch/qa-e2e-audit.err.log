@@ -1,0 +1,2 @@
+[Benchmark] Embedded skipped: Document exceeds maximum allowed BSON size (16MB limit). Estimated size: 40.53 MB for 50000 items.
+[Benchmark] Embedded skipped: Document exceeds maximum allowed BSON size (16MB limit). Estimated size: 81.06 MB for 100000 items.

