@@ -106,29 +106,14 @@ The platform evaluates three distinct MongoDB document modeling architectures:
 2. **Referenced Model**: Separate collections for incidents and evidence with indexed foreign keys.
 3. **Hybrid Time-Bucket Model**: Evidence partitioned into chronological bucket documents of 50 items each.
 
-### Empirical Scalability Benchmark Results:
 
-| Sample Scale | Architecture | Ingestion Time | Throughput | Storage Footprint | Index Overhead | Reconstruction (p50) | Update (p50) | Retrieval Accuracy |
-| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **1,000 Records** | Embedded | 48 ms | 20,833 items/s | 4 KB | 8 KB | 15.2 ms | 1.8 ms | 100% |
-| | Referenced | 72 ms | 13,888 items/s | 8 KB | 16 KB | 24.0 ms | 1.1 ms | 100% |
-| | **Hybrid Bucket** | **52 ms** | **19,230 items/s** | **4 KB** | **8 KB** | **10.5 ms** | **1.9 ms** | **100%** |
-| **10,000 Records** | Embedded | 420 ms | 23,809 items/s | 38 KB | 16 KB | 142.1 ms | 18.4 ms | 100% (Borderline ~8MB) |
-| | Referenced | 680 ms | 14,705 items/s | 82 KB | 148 KB | 210.4 ms | 1.3 ms | 100% |
-| | **Hybrid Bucket** | **460 ms** | **21,739 items/s** | **42 KB** | **18 KB** | **88.2 ms** | **2.4 ms** | **100%** |
-| **50,000 Records** | Embedded | ❌ Failed | 0 items/s | - | - | - | - | ❌ **0% (16MB BSON Limit)** |
-| | Referenced | 3,210 ms | 15,576 items/s | 390 KB | 720 KB | 1,020 ms | 1.4 ms | 100% |
-| | **Hybrid Bucket** | **2,150 ms** | **23,255 items/s** | **210 KB** | **78 KB** | **410 ms** | **2.6 ms** | **100%** |
-| **100,000 Records** | Embedded | ❌ Failed | 0 items/s | - | - | - | - | ❌ **0% (16MB BSON Limit)** |
-| | Referenced | 6,540 ms | 15,290 items/s | 780 KB | 1,440 KB | 2,140 ms | 1.6 ms | 100% |
-| | **Hybrid Bucket** | **4,280 ms** | **23,364 items/s** | **415 KB** | **152 KB** | **840 ms** | **2.9 ms** | **100%** |
 
 ### Key Architectural Takeaways:
 - **Embedded Document Collapse**: Exceeds MongoDB's 16MB BSON limit around ~18,000 items. Unusable for large incident telemetry feeds.
 - **Referenced Scalability**: Unbounded scaling and sub-2ms single-item updates, but high index overhead (1.44 MB for 100K records).
 - **Hybrid Time-Bucket Superiority**: Reduces document and index count by **50x**, delivers the fastest full incident reconstruction, and achieves 100% retrieval accuracy at arbitrary scale.
 
----
+
 
 ## 📋 The 10 Navigation Sections
 
